@@ -13,6 +13,10 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  if (pathname.startsWith("/portal") && role !== "CLIENT") {
+    return NextResponse.redirect(new URL("/admin", req.url));
+  }
+
   return NextResponse.next();
 });
 
