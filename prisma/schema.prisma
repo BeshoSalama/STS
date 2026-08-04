@@ -8,21 +8,22 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String     @unique
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  role          String    @default("CLIENT")
+  role          String     @default("CLIENT")
   phone         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   accounts      Account[]
   sessions      Session[]
   leads         Lead[]
   briefs        Brief[]
   bookings      Booking[]
+  campaigns     Campaign[]
 }
 
 model Account {
@@ -273,4 +274,63 @@ model SiteSettings {
   address String
   mapUrl  String
   socials String
+}
+
+model Campaign {
+  id             String                  @id @default(cuid())
+  userId         String
+  user           User                    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name           String
+  platform       String
+  status         String                  @default("ACTIVE")
+  budget         Int
+  spend          Int
+  revenue        Int
+  conversions    Int
+  roas           Float
+  conversionRate Float
+  cac            Int
+  impressions    Int
+  sessions       Int
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  dailyMetrics   CampaignDailyMetric[]
+  trafficSources CampaignTrafficSource[]
+  insights       CampaignInsight[]
+}
+
+model CampaignDailyMetric {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date        DateTime
+  conversions Int
+  sessions    Int
+  revenue     Int
+  spend       Int
+
+  @@unique([campaignId, date])
+}
+
+model CampaignTrafficSource {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  source      String
+  color       String
+  sessions    Int
+  percentage  Int
+  conversions Int
+}
+
+model CampaignInsight {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tone        String
+  title       String
+  description String
+  createdAt   DateTime @default(now())
 }

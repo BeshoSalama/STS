@@ -18,7 +18,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
           <nav className="flex gap-2">
             <Link href="/portal" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
-              Requests
+              Dashboard
             </Link>
             <Link href="/profile" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
               Profile

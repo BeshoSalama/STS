@@ -29,6 +29,7 @@ export function Header() {
   const loginLinkRef = useRef<HTMLAnchorElement | null>(null);
   const userHref = "/profile";
   const userLabel = user?.name || user?.email?.split("@")[0] || "Account";
+  const getHref = (href: string) => (href === "/brief" && !user ? "/login" : href);
 
   useEffect(() => {
     let active = true;
@@ -145,10 +146,11 @@ export function Header() {
             />
             {headerNavLinks.map((link) => {
               const isActive = pathname === link.href;
+              const href = getHref(link.href);
               return (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  href={href}
                   ref={(el) => {
                     linkRefs.current[link.href] = el;
                   }}
@@ -224,10 +226,11 @@ export function Header() {
         <nav className="flex flex-col gap-1 p-4">
           {headerNavLinks.map((link) => {
             const isActive = pathname === link.href;
+            const href = getHref(link.href);
             return (
               <Link
                 key={link.href}
-                href={link.href}
+                href={href}
                 onClick={() => setOpen(false)}
                 className={cn(
                   "rounded-2xl px-4 py-3 text-base font-medium transition-colors",
