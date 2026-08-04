@@ -12,10 +12,12 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = briefSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Login is required before submitting a brief" }, { status: 401 });
+  if (session.user.role !== "CLIENT") return NextResponse.json({ error: "Only client accounts can submit briefs" }, { status: 403 });
   if (parsed.data.website) return NextResponse.json({ ok: true });
 
-  const session = await auth();
-  const userId = session?.user?.id || undefined;
+  const userId = session.user.id;
   const data = parsed.data;
 
   const result = await db.$transaction(async (tx) => {

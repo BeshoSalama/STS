@@ -21,6 +21,14 @@ POST /api/auth/login
 
 Register validates and creates a client user. Login validates credentials for standalone API use.
 
+Roles:
+
+```text
+ADMIN  Full back office access
+STAFF  Leads back office access
+CLIENT Portal and brief access
+```
+
 ## Availability
 
 ```text
@@ -38,6 +46,7 @@ POST /api/leads/package-quote
 ```
 
 Creates consultation bookings, client briefs, and package quotes in the database.
+`POST /api/leads/brief` requires a logged-in client context. The website posts through the authenticated Next.js route; standalone API calls must include client user context headers.
 
 ## Source Files
 

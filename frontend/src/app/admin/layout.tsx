@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { requireStaffSession } from "@/lib/rbac";
+import { isAdmin } from "@/lib/roles";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireStaffSession();
@@ -19,9 +20,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/leads" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
               Leads
             </Link>
-            <Link href="/admin/projects" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
-              Projects
-            </Link>
+            {isAdmin(session.user.role) && (
+              <Link href="/admin/projects" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
+                Projects
+              </Link>
+            )}
             <Link href="/profile" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
               Profile
             </Link>

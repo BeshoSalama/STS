@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using STS.Application.Auth;
 using STS.Application.Common;
 using STS.Domain.Entities;
+using STS.Domain.Security;
 using STS.Infrastructure.Persistence;
 
 namespace STS.Infrastructure.Services;
@@ -28,7 +29,7 @@ public sealed class AuthService(StsDbContext db) : IAuthService
             Name = name,
             Email = email!,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, 12),
-            Role = "CLIENT",
+            Role = UserRoles.Client,
             CreatedAt = now,
             UpdatedAt = now
         };

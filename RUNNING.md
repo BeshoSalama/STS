@@ -6,6 +6,13 @@
 npm run db:setup
 ```
 
+The main local database is SQL Server:
+
+```text
+Server:   localhost
+Database: STSAgency
+```
+
 ## Run frontend only
 
 ```bash
@@ -75,4 +82,11 @@ backend/src/STS.Infrastructure
 frontend/src/app
 frontend/src/components
 prisma/schema.prisma
+```
+
+Default seeded users:
+
+```text
+admin@sts.local / Admin123456!  -> ADMIN
+staff@sts.local / Staff123456!  -> STAFF
 ```

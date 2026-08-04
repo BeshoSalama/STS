@@ -184,6 +184,18 @@ async function main() {
       role: "ADMIN",
     },
   });
+
+  const staffPassword = await bcrypt.hash("Staff123456!", 12);
+  await db.user.upsert({
+    where: { email: "staff@sts.local" },
+    update: { role: "STAFF" },
+    create: {
+      name: "STS Staff",
+      email: "staff@sts.local",
+      passwordHash: staffPassword,
+      role: "STAFF",
+    },
+  });
 }
 
 main()

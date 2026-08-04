@@ -22,6 +22,12 @@ Default URL:
 http://localhost:4000
 ```
 
+Database:
+
+```text
+SQL Server localhost / STSAgency
+```
+
 Health check:
 
 ```text

@@ -1,9 +1,12 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getProjectSlug } from "@/lib/content/projects";
+import { requireAdminSession } from "@/lib/rbac";
 
 async function createProject(formData: FormData) {
   "use server";
+  if (!(await requireAdminSession())) throw new Error("Admin access required");
   const name = String(formData.get("name") ?? "");
   await db.project.create({
     data: {
@@ -22,6 +25,7 @@ async function createProject(formData: FormData) {
 
 async function updateProject(formData: FormData) {
   "use server";
+  if (!(await requireAdminSession())) throw new Error("Admin access required");
   const id = String(formData.get("id") ?? "");
   const published = formData.get("published") === "on";
   await db.project.update({
@@ -42,6 +46,7 @@ async function updateProject(formData: FormData) {
 
 async function deleteProject(formData: FormData) {
   "use server";
+  if (!(await requireAdminSession())) throw new Error("Admin access required");
   await db.project.delete({ where: { id: String(formData.get("id") ?? "") } });
   revalidatePath("/admin/projects");
   revalidatePath("/projects");
@@ -50,6 +55,7 @@ async function deleteProject(formData: FormData) {
 const inputClass = "min-h-10 rounded-lg border border-white/10 bg-black/20 px-3 text-sm text-white outline-none";
 
 export default async function AdminProjectsPage() {
+  if (!(await requireAdminSession())) redirect("/admin/leads");
   const projects = await db.project.findMany({ orderBy: { order: "asc" } });
 
   return (

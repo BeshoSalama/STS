@@ -11,6 +11,7 @@ prisma/*.db-journal
 .claude
 .agents
 .windsurf
+.vs
 skills-lock.json
 
 /generated/prisma

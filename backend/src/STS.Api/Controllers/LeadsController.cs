@@ -17,6 +17,12 @@ public sealed class LeadsController(ILeadService leadService) : ControllerBase
     [HttpPost("brief")]
     public async Task<IActionResult> Brief(BriefLeadRequest request, CancellationToken cancellationToken)
     {
+        var userId = Request.Headers["X-User-Id"].ToString();
+        var role = Request.Headers["X-User-Role"].ToString();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { error = "Login is required before submitting a brief" });
+        if (!string.Equals(role, "CLIENT", StringComparison.OrdinalIgnoreCase)) return StatusCode(StatusCodes.Status403Forbidden, new { error = "Only client accounts can submit briefs" });
+
+        request = request with { UserId = userId };
         var result = await leadService.CreateBriefLeadAsync(request, cancellationToken);
         return ToActionResult(result);
     }

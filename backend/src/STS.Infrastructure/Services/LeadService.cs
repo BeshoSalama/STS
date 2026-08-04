@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using STS.Application.Common;
 using STS.Application.Leads;
@@ -57,7 +57,7 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is SqliteException sqlite && sqlite.SqliteErrorCode == 19)
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
         {
             return ApiResult<object>.Fail("DOUBLE_BOOKING", 409);
         }
@@ -80,6 +80,7 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             Name = request.ClientName.Trim(),
             Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
             Phone = request.Phone.Trim(),
+            UserId = request.UserId,
             Payload = JsonSerializer.Serialize(request, JsonOptions),
             CreatedAt = now,
             UpdatedAt = now
@@ -118,12 +119,19 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             DigitalMarketingExperience = TrimOrNull(request.DigitalMarketingExperience),
             UniqueSellingPoints = TrimOrNull(request.UniqueSellingPoints),
             PlanObjectives = TrimOrNull(request.PlanObjectives),
+            UserId = request.UserId,
             CreatedAt = now
         };
 
-        db.Leads.Add(lead);
-        db.Briefs.Add(brief);
-        await db.SaveChangesAsync(cancellationToken);
+        await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))
+        {
+            db.Leads.Add(lead);
+            await db.SaveChangesAsync(cancellationToken);
+
+            db.Briefs.Add(brief);
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
 
         return ApiResult<object>.Ok(new BriefLeadResponse(ToLeadResponse(lead), brief.Id), 201);
     }
@@ -158,9 +166,15 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             CreatedAt = now
         };
 
-        db.Leads.Add(lead);
-        db.PackageQuotes.Add(quote);
-        await db.SaveChangesAsync(cancellationToken);
+        await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))
+        {
+            db.Leads.Add(lead);
+            await db.SaveChangesAsync(cancellationToken);
+
+            db.PackageQuotes.Add(quote);
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
 
         return ApiResult<object>.Ok(new PackageQuoteResponse(ToLeadResponse(lead), quote.Id, total, selectedIds), 201);
     }

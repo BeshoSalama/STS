@@ -41,6 +41,8 @@ public sealed record BriefLeadRequest
     public string? UniqueSellingPoints { get; init; }
     public string? PlanObjectives { get; init; }
     public string? Website { get; init; }
+    [JsonIgnore]
+    public string? UserId { get; init; }
 }
 
 public sealed record PackageQuoteRequest(string? PlanName, IReadOnlyList<string> AddOnIds, string? Website);

@@ -24,6 +24,12 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("ADMIN"));
+    options.AddPolicy("StaffBackOffice", policy => policy.RequireRole("ADMIN", "STAFF"));
+    options.AddPolicy("ClientPortal", policy => policy.RequireRole("CLIENT"));
+});
 
 var app = builder.Build();
 

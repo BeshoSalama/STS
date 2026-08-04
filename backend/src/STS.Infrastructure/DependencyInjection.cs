@@ -14,7 +14,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string repositoryRoot)
     {
         EnvFile.LoadFrom(repositoryRoot);
-        services.AddDbContext<StsDbContext>(options => options.UseSqlite(DatabasePath.ResolveSqliteConnection(repositoryRoot)));
+        services.AddDbContext<StsDbContext>(options => options.UseSqlServer(DatabasePath.ResolveConnectionString(repositoryRoot)));
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAvailabilityService, AvailabilityService>();
         services.AddScoped<ILeadService, LeadService>();

@@ -22,13 +22,28 @@ STS/
     API_ROUTES.md          Endpoint map
     README.md
 
-  prisma/                  Shared database layer
-    schema.prisma          Database schema
+  prisma/                  Shared SQL Server database layer
+    schema.prisma          SQL Server database schema
     seed.ts                Seed data from frontend content
     migrations/            SQL migration
 
   package.json             Root scripts to run frontend/backend together or separately
   STS.code-workspace       VS Code workspace layout
+```
+
+## Database
+
+```text
+SQL Server: localhost
+Database:   STSAgency
+```
+
+Roles:
+
+```text
+ADMIN  Full back office access, including project CRUD
+STAFF  Leads back office access only
+CLIENT Portal access and brief submission
 ```
 
 ## Main Commands
