@@ -1,14 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { clientLogoImages } from "../src/lib/content/clientLogos";
-import { valueProps } from "../src/lib/content/clients";
-import { industries } from "../src/lib/content/industries";
-import { siteConfig } from "../src/lib/content/nav";
-import { customPackageBaseFee, packageAddOns, packagePlans } from "../src/lib/content/packages";
-import { getProjectSlug, projects } from "../src/lib/content/projects";
-import { services } from "../src/lib/content/services";
-import { clientStats, heroStats, platforms, resultCards } from "../src/lib/content/stats";
-import { team } from "../src/lib/content/team";
+import { clientLogoImages } from "../frontend/src/lib/content/clientLogos";
+import { valueProps } from "../frontend/src/lib/content/clients";
+import { industries } from "../frontend/src/lib/content/industries";
+import { siteConfig } from "../frontend/src/lib/content/nav";
+import { customPackageBaseFee, packageAddOns, packagePlans } from "../frontend/src/lib/content/packages";
+import { getProjectSlug, projects } from "../frontend/src/lib/content/projects";
+import { services } from "../frontend/src/lib/content/services";
+import { clientStats, heroStats, platforms, resultCards } from "../frontend/src/lib/content/stats";
+import { team } from "../frontend/src/lib/content/team";
 
 const db = new PrismaClient();
 

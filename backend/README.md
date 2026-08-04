@@ -6,22 +6,22 @@ Standalone Express API for STS Agency.
 npm run backend
 ```
 
+## Folder Map
+
+```text
+backend/src/server.ts
+backend/src/app.ts
+backend/src/routes/
+backend/src/controllers/
+backend/src/services/
+backend/src/config/
+backend/src/utils/
+```
+
 Default URL:
 
 ```text
 http://localhost:4000
-```
-
-Swagger UI:
-
-```text
-http://localhost:4000/api-docs
-```
-
-OpenAPI JSON:
-
-```text
-http://localhost:4000/openapi.json
 ```
 
 Health check:

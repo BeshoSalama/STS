@@ -1,0 +1,33 @@
+{
+  "folders": [
+    {
+      "name": "Frontend - Next.js",
+      "path": "frontend"
+    },
+    {
+      "name": "Backend - API",
+      "path": "backend"
+    },
+    {
+      "name": "Database - Prisma",
+      "path": "prisma"
+    },
+    {
+      "name": "Project Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.next-*": true,
+      "**/.agents": true,
+      "**/.claude": true,
+      "**/.windsurf": true,
+      "**/tmp": true,
+      "**/skills-lock.json": true,
+      "**/*.tsbuildinfo": true
+    }
+  }
+}
