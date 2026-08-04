@@ -3,27 +3,49 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { navLinks } from "@/lib/content/nav";
 import { gsap } from "@/lib/animations/gsapConfig";
 import { Logo } from "./Logo";
 
-const authLinks = [
-  { label: "Login", href: "/login" },
-];
-
 const headerNavLinks = navLinks.filter((link) => link.href !== "/projects");
+
+type HeaderUser = {
+  name?: string | null;
+  email?: string | null;
+  role?: string;
+};
 
 export function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<HeaderUser | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const pillRef = useRef<HTMLSpanElement | null>(null);
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const hasPositioned = useRef(false);
   const projectsLinkRef = useRef<HTMLAnchorElement | null>(null);
   const loginLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const userHref = user?.role === "ADMIN" || user?.role === "STAFF" ? "/admin" : "/portal";
+  const userLabel = user?.name || user?.email?.split("@")[0] || "Account";
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((session: { user?: HeaderUser } | null) => {
+        if (active) setUser(session?.user ?? null);
+      })
+      .catch(() => {
+        if (active) setUser(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
 
   useLayoutEffect(() => {
     const link = projectsLinkRef.current;
@@ -166,17 +188,32 @@ export function Header() {
         </Link>
       )}
 
-      <Link
-        ref={loginLinkRef}
-        href="/login"
-        className={cn(
-          "absolute right-4 top-0 hidden h-16 min-w-[98px] items-center justify-center rounded-full border border-violet-400/25 px-5 text-sm font-bold leading-none shadow-card backdrop-blur-xl transition-colors duration-300 sm:right-6 lg:inline-flex",
-          pathname === "/login" ? "bg-violet-gradient text-white" : "bg-surface-card/90 text-ink/75 hover:bg-violet-50 hover:text-ink"
-        )}
-        data-no-ripple
-      >
-        Login
-      </Link>
+      {user ? (
+        <Link
+          ref={loginLinkRef}
+          href={userHref}
+          className="absolute right-4 top-0 hidden h-16 max-w-[210px] items-center justify-center gap-3 rounded-full border border-violet-400/25 bg-surface-card/90 px-4 text-sm font-bold leading-none text-ink/75 shadow-card backdrop-blur-xl transition-colors duration-300 hover:bg-violet-50 hover:text-ink sm:right-6 lg:inline-flex"
+          data-no-ripple
+          aria-label={`Open ${userLabel} account`}
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-gradient text-white">
+            <UserRound size={17} />
+          </span>
+          <span className="truncate">{userLabel}</span>
+        </Link>
+      ) : (
+        <Link
+          ref={loginLinkRef}
+          href="/login"
+          className={cn(
+            "absolute right-4 top-0 hidden h-16 min-w-[98px] items-center justify-center rounded-full border border-violet-400/25 px-5 text-sm font-bold leading-none shadow-card backdrop-blur-xl transition-colors duration-300 sm:right-6 lg:inline-flex",
+            pathname === "/login" ? "bg-violet-gradient text-white" : "bg-surface-card/90 text-ink/75 hover:bg-violet-50 hover:text-ink"
+          )}
+          data-no-ripple
+        >
+          Login
+        </Link>
+      )}
 
       <div
         className={cn(
@@ -206,22 +243,29 @@ export function Header() {
             );
           })}
           <div className="mt-2 grid gap-2 border-t border-ink/5 pt-3">
-            {authLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "rounded-2xl px-4 py-3 text-center text-base font-semibold transition-colors",
-                    isActive ? "bg-violet-gradient text-white" : "bg-surface text-ink/75"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
+            {user ? (
+              <Link
+                href={userHref}
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center gap-3 rounded-2xl bg-surface px-4 py-3 text-center text-base font-semibold text-ink/75 transition-colors"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-gradient text-white">
+                  <UserRound size={16} />
+                </span>
+                <span className="truncate">{userLabel}</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "rounded-2xl px-4 py-3 text-center text-base font-semibold transition-colors",
+                  pathname === "/login" ? "bg-violet-gradient text-white" : "bg-surface text-ink/75"
+                )}
+              >
+                Login
+              </Link>
+            )}
           </div>
         </nav>
       </div>
