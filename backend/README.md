@@ -1,6 +1,6 @@
 # STS Backend API
 
-Standalone Express API for STS Agency.
+Standalone ASP.NET Core Web API for STS Agency, organized with Onion Architecture.
 
 ```bash
 npm run backend
@@ -9,13 +9,11 @@ npm run backend
 ## Folder Map
 
 ```text
-backend/src/server.ts
-backend/src/app.ts
-backend/src/routes/
-backend/src/controllers/
-backend/src/services/
-backend/src/config/
-backend/src/utils/
+backend/STS.Backend.slnx
+backend/src/STS.Domain/          Core entities
+backend/src/STS.Application/     DTOs and service contracts
+backend/src/STS.Infrastructure/  EF Core DbContext and services
+backend/src/STS.Api/             Controllers, Swagger, CORS
 ```
 
 Default URL:
@@ -28,6 +26,13 @@ Health check:
 
 ```text
 GET /health
+```
+
+Swagger:
+
+```text
+GET /
+GET /swagger/v1/swagger.json
 ```
 
 Public API endpoints:

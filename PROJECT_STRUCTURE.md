@@ -13,15 +13,12 @@ STS/
     tailwind.config.ts
     tsconfig.json
 
-  backend/                 Standalone Express API
-    src/server.ts          Starts the API server
-    src/app.ts             Express app setup
-    src/routes/            API route registration
-    src/controllers/       Request handlers
-    src/services/          Business logic
-    src/config/            DB and OpenAPI config
-    src/utils/             Shared backend utilities
-    scripts/setup-db.ts    Local database setup helper
+  backend/                 Standalone .NET API using Onion Architecture
+    STS.Backend.slnx       .NET solution
+    src/STS.Domain/        Entities and core domain types
+    src/STS.Application/   DTOs, interfaces, application contracts
+    src/STS.Infrastructure/EF Core SQLite persistence and services
+    src/STS.Api/           ASP.NET Core controllers, CORS, Swagger
     API_ROUTES.md          Endpoint map
     README.md
 

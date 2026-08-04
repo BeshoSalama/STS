@@ -30,6 +30,12 @@ Backend URL:
 http://localhost:4000
 ```
 
+Swagger API docs:
+
+```text
+http://localhost:4000
+```
+
 Health check:
 
 ```text
@@ -49,7 +55,7 @@ Frontend: http://localhost:3000
 Backend:  http://localhost:4000
 ```
 
-The frontend uses `NEXT_PUBLIC_API_URL` when the standalone backend is running, and falls back to the internal Next.js API routes if the backend is offline.
+The frontend uses `NEXT_PUBLIC_API_URL` when the standalone .NET backend is running, and falls back to the internal Next.js API routes if the backend is offline.
 
 ## Open the code in VS Code
 
@@ -62,7 +68,10 @@ Important files:
 ```text
 PROJECT_STRUCTURE.md
 backend/API_ROUTES.md
-backend/src/server.ts
+backend/src/STS.Api
+backend/src/STS.Application
+backend/src/STS.Domain
+backend/src/STS.Infrastructure
 frontend/src/app
 frontend/src/components
 prisma/schema.prisma

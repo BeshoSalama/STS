@@ -1,11 +1,13 @@
 # Backend API Routes
 
-This file is the code-side API map. Open it from VS Code instead of using the browser.
+This file is the code-side API map. Swagger is available when the backend runs at `http://localhost:4000`.
 
 ## System
 
 ```text
+GET /
 GET /health
+GET /swagger/v1/swagger.json
 ```
 
 Checks that the standalone backend is running.
@@ -40,13 +42,13 @@ Creates consultation bookings, client briefs, and package quotes in the database
 ## Source Files
 
 ```text
-backend/src/server.ts
-backend/src/app.ts
-backend/src/routes/index.ts
-backend/src/controllers/authController.ts
-backend/src/controllers/availabilityController.ts
-backend/src/controllers/leadController.ts
-backend/src/services/bookingService.ts
+backend/src/STS.Api/Program.cs
+backend/src/STS.Api/Controllers/AuthController.cs
+backend/src/STS.Api/Controllers/AvailabilityController.cs
+backend/src/STS.Api/Controllers/LeadsController.cs
+backend/src/STS.Application/
+backend/src/STS.Domain/
+backend/src/STS.Infrastructure/
 frontend/src/components/sections/ContactPanel.tsx
 frontend/src/app/brief/page.tsx
 frontend/src/components/sections/PackageCards.tsx

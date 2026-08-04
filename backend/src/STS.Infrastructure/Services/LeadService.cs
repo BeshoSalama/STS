@@ -1,0 +1,172 @@
+using System.Text.Json;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using STS.Application.Common;
+using STS.Application.Leads;
+using STS.Domain.Entities;
+using STS.Infrastructure.Persistence;
+
+namespace STS.Infrastructure.Services;
+
+public sealed class LeadService(StsDbContext db) : ILeadService
+{
+    private const int DefaultDayCapacity = 6;
+    private const int CustomPackageBaseFee = 199;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    public async Task<ApiResult<object>> CreateContactLeadAsync(ContactLeadRequest request, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Website)) return ApiResult<object>.Ok(new { ok = true });
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2) return ApiResult<object>.Fail("Name is required", 400);
+        if (string.IsNullOrWhiteSpace(request.Phone) || request.Phone.Trim().Length < 6) return ApiResult<object>.Fail("Phone is required", 400);
+        if (!AvailabilityService.TryParseDateKey(request.ConsultationDate, out var date)) return ApiResult<object>.Fail("consultationDate must be YYYY-MM-DD", 400);
+        if (AvailabilityService.IsStaticBlocked(request.ConsultationDate!)) return ApiResult<object>.Fail("DAY_BLOCKED", 409);
+
+        var capacity = await db.DayCapacities.FindAsync([date], cancellationToken);
+        if (capacity?.Blocked == true) return ApiResult<object>.Fail("DAY_BLOCKED", 409);
+
+        var bookingCount = await db.Bookings.CountAsync(x => x.Date == date, cancellationToken);
+        if (bookingCount >= (capacity?.Capacity ?? DefaultDayCapacity)) return ApiResult<object>.Fail("DAY_FULL", 409);
+
+        var now = DateTime.UtcNow;
+        var booking = new Booking
+        {
+            Id = NewId(),
+            Date = date,
+            Name = request.Name.Trim(),
+            Phone = request.Phone.Trim(),
+            CreatedAt = now
+        };
+        var lead = new Lead
+        {
+            Id = NewId(),
+            Type = "CONSULTATION",
+            Name = booking.Name,
+            Phone = booking.Phone,
+            Payload = JsonSerializer.Serialize(new { consultationDate = request.ConsultationDate, bookingId = booking.Id }, JsonOptions),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        db.Bookings.Add(booking);
+        db.Leads.Add(lead);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqliteException sqlite && sqlite.SqliteErrorCode == 19)
+        {
+            return ApiResult<object>.Fail("DOUBLE_BOOKING", 409);
+        }
+
+        return ApiResult<object>.Ok(new ContactLeadResponse(ToLeadResponse(lead), booking.Id), 201);
+    }
+
+    public async Task<ApiResult<object>> CreateBriefLeadAsync(BriefLeadRequest request, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Website)) return ApiResult<object>.Ok(new { ok = true });
+        if (string.IsNullOrWhiteSpace(request.ClientName) || request.ClientName.Trim().Length < 2) return ApiResult<object>.Fail("clientName is required", 400);
+        if (string.IsNullOrWhiteSpace(request.BrandName) || request.BrandName.Trim().Length < 2) return ApiResult<object>.Fail("brandName is required", 400);
+        if (string.IsNullOrWhiteSpace(request.Phone) || request.Phone.Trim().Length < 6) return ApiResult<object>.Fail("phone is required", 400);
+
+        var now = DateTime.UtcNow;
+        var lead = new Lead
+        {
+            Id = NewId(),
+            Type = "BRIEF",
+            Name = request.ClientName.Trim(),
+            Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+            Phone = request.Phone.Trim(),
+            Payload = JsonSerializer.Serialize(request, JsonOptions),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        var brief = new Brief
+        {
+            Id = NewId(),
+            LeadId = lead.Id,
+            ClientName = request.ClientName.Trim(),
+            BrandName = request.BrandName.Trim(),
+            BriefDate = ParseOptionalDate(request.BriefDate),
+            Email = lead.Email,
+            Phone = lead.Phone,
+            MainGoals = TrimOrNull(request.MainGoals),
+            RoleModel = TrimOrNull(request.RoleModel),
+            CompetitorsLinks = TrimOrNull(request.CompetitorsLinks),
+            BrandIdentity = TrimOrNull(request.BrandIdentity),
+            BrandLevel = TrimOrNull(request.BrandLevel),
+            CustomerSegment = TrimOrNull(request.CustomerSegment),
+            BusinessType = TrimOrNull(request.BusinessType),
+            SocialPlatforms = JsonSerializer.Serialize(request.SocialPlatforms, JsonOptions),
+            BrandSlogan = TrimOrNull(request.BrandSlogan),
+            PreferredColors = TrimOrNull(request.PreferredColors),
+            ColorNumbers = TrimOrNull(request.ColorNumbers),
+            ToneOfVoice = JsonSerializer.Serialize(request.ToneOfVoice, JsonOptions),
+            AdvertisingPlatforms = JsonSerializer.Serialize(request.AdvertisingPlatforms, JsonOptions),
+            AdsBudget = TrimOrNull(request.AdsBudget),
+            TargetAge = TrimOrNull(request.TargetAge),
+            BranchesNumber = request.BranchesNumber,
+            Locations = TrimOrNull(request.Locations),
+            Gender = TrimOrNull(request.Gender),
+            Languages = JsonSerializer.Serialize(request.Languages, JsonOptions),
+            PlatformLinks = TrimOrNull(request.PlatformLinks),
+            Notes = TrimOrNull(request.Notes),
+            BusinessModel = TrimOrNull(request.BusinessModel),
+            DigitalMarketingExperience = TrimOrNull(request.DigitalMarketingExperience),
+            UniqueSellingPoints = TrimOrNull(request.UniqueSellingPoints),
+            PlanObjectives = TrimOrNull(request.PlanObjectives),
+            CreatedAt = now
+        };
+
+        db.Leads.Add(lead);
+        db.Briefs.Add(brief);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ApiResult<object>.Ok(new BriefLeadResponse(ToLeadResponse(lead), brief.Id), 201);
+    }
+
+    public async Task<ApiResult<object>> CreatePackageQuoteAsync(PackageQuoteRequest request, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Website)) return ApiResult<object>.Ok(new { ok = true });
+
+        var requestedAddOnIds = request.AddOnIds ?? [];
+        var addOns = await db.PackageAddOns.Where(x => requestedAddOnIds.Contains(x.Id)).ToListAsync(cancellationToken);
+        var total = addOns.Sum(x => x.Price) + CustomPackageBaseFee;
+        var now = DateTime.UtcNow;
+        var selectedIds = addOns.Select(x => x.Id).ToArray();
+
+        var lead = new Lead
+        {
+            Id = NewId(),
+            Type = "PACKAGE_QUOTE",
+            Name = "Package Builder",
+            Phone = "not-provided",
+            Payload = JsonSerializer.Serialize(new { request.PlanName, addOnIds = selectedIds, total }, JsonOptions),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        var quote = new PackageQuote
+        {
+            Id = NewId(),
+            LeadId = lead.Id,
+            PlanName = TrimOrNull(request.PlanName),
+            AddOnIds = JsonSerializer.Serialize(selectedIds, JsonOptions),
+            Total = total,
+            CreatedAt = now
+        };
+
+        db.Leads.Add(lead);
+        db.PackageQuotes.Add(quote);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ApiResult<object>.Ok(new PackageQuoteResponse(ToLeadResponse(lead), quote.Id, total, selectedIds), 201);
+    }
+
+    private static LeadResponse ToLeadResponse(Lead lead) => new(lead.Id, lead.Type, lead.Status, lead.Name, lead.Email, lead.Phone, lead.CreatedAt);
+    private static string NewId() => $"dotnet_{Guid.NewGuid():N}";
+    private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static DateTime? ParseOptionalDate(string? value) => AvailabilityService.TryParseDateKey(value, out var date) ? date : null;
+}
