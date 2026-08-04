@@ -1,0 +1,196 @@
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { clientLogoImages } from "../src/lib/content/clientLogos";
+import { valueProps } from "../src/lib/content/clients";
+import { industries } from "../src/lib/content/industries";
+import { siteConfig } from "../src/lib/content/nav";
+import { customPackageBaseFee, packageAddOns, packagePlans } from "../src/lib/content/packages";
+import { getProjectSlug, projects } from "../src/lib/content/projects";
+import { services } from "../src/lib/content/services";
+import { clientStats, heroStats, platforms, resultCards } from "../src/lib/content/stats";
+import { team } from "../src/lib/content/team";
+
+const db = new PrismaClient();
+
+async function main() {
+  for (const [order, project] of projects.entries()) {
+    await db.project.upsert({
+      where: { slug: getProjectSlug(project.name) },
+      update: { ...project, order, published: true },
+      create: { slug: getProjectSlug(project.name), ...project, order, published: true },
+    });
+  }
+
+  for (const [order, industry] of industries.entries()) {
+    const savedIndustry = await db.industry.upsert({
+      where: { slug: industry.slug },
+      update: {
+        name: industry.name,
+        icon: industry.icon,
+        headline: industry.headline,
+        description: industry.description,
+        order,
+      },
+      create: {
+        slug: industry.slug,
+        name: industry.name,
+        icon: industry.icon,
+        headline: industry.headline,
+        description: industry.description,
+        order,
+      },
+    });
+
+    await db.industryClient.deleteMany({ where: { industryId: savedIndustry.id } });
+    for (const [clientOrder, client] of industry.clients.entries()) {
+      await db.industryClient.create({
+        data: { industryId: savedIndustry.id, name: client.name, result: client.result, order: clientOrder },
+      });
+    }
+  }
+
+  for (const [order, member] of team.entries()) {
+    await db.teamMember.upsert({
+      where: { id: `team-${order}` },
+      update: { ...member, order },
+      create: { id: `team-${order}`, ...member, order },
+    });
+  }
+
+  for (const [order, service] of services.entries()) {
+    await db.serviceItem.upsert({
+      where: { id: `service-${order}` },
+      update: { ...service, order },
+      create: { id: `service-${order}`, ...service, order },
+    });
+  }
+
+  for (const [order, plan] of packagePlans.entries()) {
+    await db.packagePlan.upsert({
+      where: { name: plan.name },
+      update: {
+        tagline: plan.tagline,
+        price: plan.price,
+        period: plan.period,
+        description: plan.description,
+        features: JSON.stringify(plan.features),
+        cta: plan.cta,
+        featured: Boolean(plan.featured),
+        order,
+      },
+      create: {
+        name: plan.name,
+        tagline: plan.tagline,
+        price: plan.price,
+        period: plan.period,
+        description: plan.description,
+        features: JSON.stringify(plan.features),
+        cta: plan.cta,
+        featured: Boolean(plan.featured),
+        order,
+      },
+    });
+  }
+
+  await db.packagePlan.upsert({
+    where: { name: "Custom Package Base Fee" },
+    update: {
+      tagline: "Custom builder",
+      price: `$${customPackageBaseFee}`,
+      period: "/mo",
+      description: "Base fee used by the server-side quote calculator.",
+      features: JSON.stringify([]),
+      cta: "Request This Package",
+      featured: false,
+      order: 999,
+    },
+    create: {
+      name: "Custom Package Base Fee",
+      tagline: "Custom builder",
+      price: `$${customPackageBaseFee}`,
+      period: "/mo",
+      description: "Base fee used by the server-side quote calculator.",
+      features: JSON.stringify([]),
+      cta: "Request This Package",
+      featured: false,
+      order: 999,
+    },
+  });
+
+  for (const [order, addOn] of packageAddOns.entries()) {
+    await db.packageAddOn.upsert({
+      where: { id: addOn.id },
+      update: { label: addOn.label, description: addOn.description, price: addOn.price, order },
+      create: { ...addOn, order },
+    });
+  }
+
+  for (const [order, logo] of clientLogoImages.entries()) {
+    await db.clientLogo.upsert({
+      where: { id: `logo-${order}` },
+      update: { ...logo, order, size: "md" },
+      create: { id: `logo-${order}`, ...logo, order, size: "md" },
+    });
+  }
+
+  for (const [order, prop] of valueProps.entries()) {
+    await db.valueProp.upsert({
+      where: { id: `value-${order}` },
+      update: { ...prop, order },
+      create: { id: `value-${order}`, ...prop, order },
+    });
+  }
+
+  await db.heroStats.upsert({ where: { id: 1 }, update: heroStats, create: { id: 1, ...heroStats } });
+  await db.clientStats.upsert({ where: { id: 1 }, update: clientStats, create: { id: 1, ...clientStats } });
+
+  for (const [order, card] of resultCards.entries()) {
+    await db.resultCard.upsert({
+      where: { id: `result-${order}` },
+      update: { ...card, order },
+      create: { id: `result-${order}`, ...card, order },
+    });
+  }
+
+  for (const [order, name] of platforms.entries()) {
+    await db.platform.upsert({ where: { name }, update: { order }, create: { name, order } });
+  }
+
+  await db.siteSettings.upsert({
+    where: { id: 1 },
+    update: {
+      phone: siteConfig.phone,
+      address: siteConfig.address,
+      mapUrl: siteConfig.mapUrl,
+      socials: JSON.stringify(siteConfig.socials),
+    },
+    create: {
+      id: 1,
+      phone: siteConfig.phone,
+      address: siteConfig.address,
+      mapUrl: siteConfig.mapUrl,
+      socials: JSON.stringify(siteConfig.socials),
+    },
+  });
+
+  const adminPassword = await bcrypt.hash("Admin123456!", 12);
+  await db.user.upsert({
+    where: { email: "admin@sts.local" },
+    update: { role: "ADMIN" },
+    create: {
+      name: "STS Admin",
+      email: "admin@sts.local",
+      passwordHash: adminPassword,
+      role: "ADMIN",
+    },
+  });
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await db.$disconnect();
+  });
