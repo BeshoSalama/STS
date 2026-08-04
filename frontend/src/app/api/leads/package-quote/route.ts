@@ -14,12 +14,13 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = packageQuoteSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const session = await auth();
+  const user = session?.user;
+  if (!user?.id) return NextResponse.json({ error: "Login is required before requesting a package quote" }, { status: 401 });
   if (parsed.data.website) return NextResponse.json({ ok: true });
 
   const addOns = await db.packageAddOn.findMany({ where: { id: { in: parsed.data.addOnIds } } });
   const total = addOns.reduce((sum, addOn) => sum + addOn.price, CUSTOM_PACKAGE_BASE_FEE);
-  const session = await auth();
-  const user = session?.user;
 
   const result = await db.$transaction(async (tx) => {
     const lead = await tx.lead.create({

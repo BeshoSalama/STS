@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -11,7 +12,7 @@ import type { PackageAddOn, PackagePlan } from "@/types/content";
 
 const customPackageBaseFee = 199;
 
-function PlanCard({ index, plan }: { index: number; plan: PackagePlan }) {
+function PlanCard({ index, plan, isAuthenticated }: { index: number; plan: PackagePlan; isAuthenticated: boolean }) {
   return (
     <article
       data-package-card
@@ -48,7 +49,7 @@ function PlanCard({ index, plan }: { index: number; plan: PackagePlan }) {
       </ul>
 
       <Button
-        href="/contact"
+        href={isAuthenticated ? "/contact" : "/login"}
         variant={plan.featured ? "primary" : "outline"}
         className="mt-8 w-full justify-center py-3.5"
       >
@@ -58,7 +59,8 @@ function PlanCard({ index, plan }: { index: number; plan: PackagePlan }) {
   );
 }
 
-function CustomPackageCard({ index, packageAddOns }: { index: number; packageAddOns: PackageAddOn[] }) {
+function CustomPackageCard({ index, packageAddOns, isAuthenticated }: { index: number; packageAddOns: PackageAddOn[]; isAuthenticated: boolean }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
 
@@ -69,10 +71,20 @@ function CustomPackageCard({ index, packageAddOns }: { index: number; packageAdd
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   function toggle(id: string) {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
     setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
   async function requestQuote() {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
     setStatus("loading");
     const addOnIds = Object.entries(selected)
       .filter(([, isSelected]) => isSelected)
@@ -157,7 +169,15 @@ function CustomPackageCard({ index, packageAddOns }: { index: number; packageAdd
   );
 }
 
-export function PackageCards({ packagePlans, packageAddOns }: { packagePlans: PackagePlan[]; packageAddOns: PackageAddOn[] }) {
+export function PackageCards({
+  packagePlans,
+  packageAddOns,
+  isAuthenticated,
+}: {
+  packagePlans: PackagePlan[];
+  packageAddOns: PackageAddOn[];
+  isAuthenticated: boolean;
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -189,9 +209,9 @@ export function PackageCards({ packagePlans, packageAddOns }: { packagePlans: Pa
   return (
     <div ref={ref} className="package-showcase container grid gap-6 pt-12 sm:grid-cols-2 lg:grid-cols-4 lg:items-stretch">
       {packagePlans.map((plan, index) => (
-        <PlanCard key={plan.name} index={index} plan={plan} />
+        <PlanCard key={plan.name} index={index} plan={plan} isAuthenticated={isAuthenticated} />
       ))}
-      <CustomPackageCard index={packagePlans.length} packageAddOns={packageAddOns} />
+      <CustomPackageCard index={packagePlans.length} packageAddOns={packageAddOns} isAuthenticated={isAuthenticated} />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PackageCards } from "@/components/sections/PackageCards";
+import { auth } from "@/lib/auth";
 import { getPackageAddOns, getPackagePlans } from "@/lib/content/packages";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function PricingPage() {
-  const [packagePlans, packageAddOns] = await Promise.all([getPackagePlans(), getPackageAddOns()]);
+  const [packagePlans, packageAddOns, session] = await Promise.all([getPackagePlans(), getPackageAddOns(), auth()]);
 
   return (
     <section className="pricing-page relative overflow-hidden pb-24 pt-36 sm:pt-44">
@@ -24,7 +25,7 @@ export default async function PricingPage() {
         />
       </div>
 
-      <PackageCards packagePlans={packagePlans} packageAddOns={packageAddOns} />
+      <PackageCards packagePlans={packagePlans} packageAddOns={packageAddOns} isAuthenticated={Boolean(session?.user?.id)} />
     </section>
   );
 }
