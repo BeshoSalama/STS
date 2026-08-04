@@ -1,0 +1,14 @@
+node_modules
+.next
+.next-*
+*.tsbuildinfo
+.env
+.env*.local
+tmp
+npm-debug.log*
+.claude
+.agents
+.windsurf
+skills-lock.json
+
+/generated/prisma
