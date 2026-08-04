@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { ArrowRight, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { apiFetch } from "@/lib/apiClient";
 import { cn } from "@/lib/cn";
 
 type AuthMode = "login" | "register";
@@ -88,7 +89,7 @@ export function AuthPanel({ mode }: AuthPanelProps) {
 
     try {
       if (isRegister) {
-        const response = await fetch("/api/auth/register", {
+        const response = await apiFetch("/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),

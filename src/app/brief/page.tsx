@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { CheckCircle2, ClipboardList, Send } from "lucide-react";
+import { apiFetch } from "@/lib/apiClient";
 
 const socialPlatforms = ["Facebook", "Instagram", "Twitter", "Google", "YouTube", "Other"];
 const toneOptions = ["Funny", "Cool", "Trendy", "Formal"];
@@ -157,7 +158,7 @@ export default function BriefPage() {
     }
 
     try {
-      const response = await fetch("/api/leads/brief", {
+      const response = await apiFetch("/leads/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

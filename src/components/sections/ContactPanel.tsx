@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Facebook, MapPin, MessageCircle, Navigation, Send } from "lucide-react";
+import { apiFetch } from "@/lib/apiClient";
 import { siteConfig } from "@/lib/content/nav";
 import { consultationAvailability } from "@/lib/content/consultationAvailability";
 
@@ -22,7 +23,7 @@ type ConsultationDay = {
 };
 
 async function submitContactForm(data: ConsultationRequest) {
-  const response = await fetch("/api/leads/contact", {
+  const response = await apiFetch("/leads/contact", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -153,7 +154,7 @@ export function ContactPanel() {
     if (!weekStart || !weekEnd) return;
 
     const controller = new AbortController();
-    fetch(`/api/availability?from=${formatDateKey(weekStart)}&to=${formatDateKey(weekEnd)}`, {
+    apiFetch(`/availability?from=${formatDateKey(weekStart)}&to=${formatDateKey(weekEnd)}`, {
       signal: controller.signal,
     })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Could not load availability"))))

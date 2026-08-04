@@ -6,6 +6,7 @@ import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
+import { apiFetch } from "@/lib/apiClient";
 import type { PackageAddOn, PackagePlan } from "@/types/content";
 
 const customPackageBaseFee = 199;
@@ -78,7 +79,7 @@ function CustomPackageCard({ index, packageAddOns }: { index: number; packageAdd
       .map(([id]) => id);
 
     try {
-      const response = await fetch("/api/leads/package-quote", {
+      const response = await apiFetch("/leads/package-quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planName: "Custom Package", addOnIds }),
