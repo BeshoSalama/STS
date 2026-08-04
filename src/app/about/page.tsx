@@ -1,7 +1,12 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TeamGrid } from "@/components/sections/TeamGrid";
+import { getTeam } from "@/lib/content/team";
 
-export default function AboutPage() {
+export const revalidate = 3600;
+
+export default async function AboutPage() {
+  const team = await getTeam();
+
   return (
     <>
       <section className="relative overflow-hidden pb-16 pt-40 sm:pt-48">
@@ -19,7 +24,7 @@ export default function AboutPage() {
           />
         </div>
       </section>
-      <TeamGrid />
+      <TeamGrid team={team} />
     </>
   );
 }

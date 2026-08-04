@@ -1,9 +1,14 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { StatCard } from "@/components/ui/StatCard";
 import { ProjectGrid } from "@/components/sections/ProjectGrid";
-import { heroStats } from "@/lib/content/stats";
+import { getProjects } from "@/lib/content/projects";
+import { getHeroStats } from "@/lib/content/stats";
 
-export default function ProjectsPage() {
+export const revalidate = 3600;
+
+export default async function ProjectsPage() {
+  const [projects, heroStats] = await Promise.all([getProjects(), getHeroStats()]);
+
   return (
     <>
       <section className="relative overflow-hidden pb-16 pt-40 sm:pt-48">
@@ -24,7 +29,7 @@ export default function ProjectsPage() {
           </div>
         </div>
       </section>
-      <ProjectGrid />
+      <ProjectGrid projects={projects} />
     </>
   );
 }

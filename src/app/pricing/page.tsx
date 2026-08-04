@@ -1,7 +1,12 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PackageCards } from "@/components/sections/PackageCards";
+import { getPackageAddOns, getPackagePlans } from "@/lib/content/packages";
 
-export default function PricingPage() {
+export const revalidate = 3600;
+
+export default async function PricingPage() {
+  const [packagePlans, packageAddOns] = await Promise.all([getPackagePlans(), getPackageAddOns()]);
+
   return (
     <section className="pricing-page relative overflow-hidden pb-24 pt-36 sm:pt-44">
       <div className="container">
@@ -19,7 +24,7 @@ export default function PricingPage() {
         />
       </div>
 
-      <PackageCards />
+      <PackageCards packagePlans={packagePlans} packageAddOns={packageAddOns} />
     </section>
   );
 }

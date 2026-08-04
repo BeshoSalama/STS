@@ -25,9 +25,10 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { getProjectSlug, projects } from "@/lib/content/projects";
+import { getProjectBySlug, getProjectSlug, getProjects } from "@/lib/content/projects";
+import type { ProjectItem } from "@/types/content";
 
-type DetailProject = (typeof projects)[number];
+type DetailProject = ProjectItem;
 
 const arabicCategories: Record<string, string> = {
   "Food & Restaurant": "مطاعم ومأكولات",
@@ -106,16 +107,15 @@ function getArabicCategory(project: DetailProject) {
   return arabicCategories[project.category] ?? project.category;
 }
 
-function getProject(slug: string) {
-  return projects.find((project) => getProjectSlug(project.name) === slug);
-}
+export const revalidate = 3600;
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const projects = await getProjects();
   return projects.map((project) => ({ slug: getProjectSlug(project.name) }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const project = getProject(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const project = await getProjectBySlug(params.slug);
 
   if (!project) {
     return { title: "Project not found | STS Agency" };
@@ -166,8 +166,8 @@ function ImageTile({ project, video = false }: { project: DetailProject; video?:
   );
 }
 
-export default function ProjectDetailsPage({ params }: { params: { slug: string } }) {
-  const project = getProject(params.slug);
+export default async function ProjectDetailsPage({ params }: { params: { slug: string } }) {
+  const project = await getProjectBySlug(params.slug);
 
   if (!project) {
     notFound();

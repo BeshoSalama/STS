@@ -1,6 +1,11 @@
 import { ServiceCards } from "@/components/sections/ServiceCards";
+import { getServices } from "@/lib/content/services";
 
-export default function ServicesPage() {
+export const revalidate = 3600;
+
+export default async function ServicesPage() {
+  const services = await getServices();
+
   return (
     <section className="services-page relative overflow-hidden pb-12 pt-36 sm:pt-44">
       <div className="container">
@@ -14,7 +19,7 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      <ServiceCards />
+      <ServiceCards services={services} />
     </section>
   );
 }

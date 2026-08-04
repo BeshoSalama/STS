@@ -30,3 +30,9 @@ export const clientLogoImages: ClientLogoImage[] = [
   { name: "Sama Technology", category: "Technology", file: "/clients/ChatGPT Image May 19, 2026, 02_04_52 AM.png", objectPosition: "50% 50%" },
   { name: "Evelen", category: "Real Estate", file: "/clients/ChatGPT Image May 19, 2026, 02_07_36 AM.png", objectPosition: "50% 50%" },
 ];
+
+export async function getClientLogoImages() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.clientLogo.findMany({ orderBy: { order: "asc" } });
+  return rows.map(({ name, category, file, objectPosition }) => ({ name, category, file, objectPosition }));
+}

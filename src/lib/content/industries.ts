@@ -51,3 +51,34 @@ export const industries: Industry[] = [
 export function getIndustry(slug: string) {
   return industries.find((industry) => industry.slug === slug);
 }
+
+export async function getIndustries() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.industry.findMany({ include: { clients: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } });
+  return rows.map((industry) => ({
+    slug: industry.slug,
+    name: industry.name,
+    icon: industry.icon as Industry["icon"],
+    headline: industry.headline,
+    description: industry.description,
+    clients: industry.clients.map((client) => ({ name: client.name, result: client.result })),
+  }));
+}
+
+export async function getIndustryBySlug(slug: string) {
+  const { db } = await import("@/lib/db");
+  const industry = await db.industry.findUnique({
+    where: { slug },
+    include: { clients: { orderBy: { order: "asc" } } },
+  });
+  if (!industry) return null;
+
+  return {
+    slug: industry.slug,
+    name: industry.name,
+    icon: industry.icon as Industry["icon"],
+    headline: industry.headline,
+    description: industry.description,
+    clients: industry.clients.map((client) => ({ name: client.name, result: client.result })),
+  };
+}

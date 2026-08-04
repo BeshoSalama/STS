@@ -148,3 +148,15 @@ export const projects: ProjectItem[] = [
     imageAlt: "Evelen real estate company logo",
   },
 ];
+
+export async function getProjects() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.project.findMany({ where: { published: true }, orderBy: { order: "asc" } });
+  return rows.map(({ name, category, image, imageAlt }) => ({ name, category, image, imageAlt }));
+}
+
+export async function getProjectBySlug(slug: string) {
+  const { db } = await import("@/lib/db");
+  const project = await db.project.findFirst({ where: { slug, published: true } });
+  return project ? { name: project.name, category: project.category, image: project.image, imageAlt: project.imageAlt } : null;
+}

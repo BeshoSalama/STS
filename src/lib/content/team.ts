@@ -13,3 +13,9 @@ export const team: TeamMember[] = [
   { name: "Dina Sherif", role: "SEO Specialist" },
   { name: "Mostafa Kamal", role: "Automation Engineer" },
 ];
+
+export async function getTeam() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.teamMember.findMany({ orderBy: { order: "asc" } });
+  return rows.map(({ name, role }) => ({ name, role }));
+}

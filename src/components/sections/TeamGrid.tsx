@@ -2,7 +2,7 @@
 
 import { UserPlus } from "lucide-react";
 import { useScrollReveal } from "@/lib/animations";
-import { team } from "@/lib/content/team";
+import type { TeamMember } from "@/types/content";
 
 function initials(name: string) {
   return name
@@ -12,7 +12,7 @@ function initials(name: string) {
     .slice(0, 2);
 }
 
-export function TeamGrid() {
+export function TeamGrid({ team }: { team: TeamMember[] }) {
   const ref = useScrollReveal<HTMLDivElement>({ selector: "[data-reveal]", stagger: 0.06, y: 24 });
 
   return (

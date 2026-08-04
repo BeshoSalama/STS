@@ -2,11 +2,11 @@
 
 import { Target, Lightbulb, TrendingUp, Headset } from "lucide-react";
 import { useScrollReveal } from "@/lib/animations";
-import { valueProps } from "@/lib/content/clients";
+import type { ValueProp } from "@/types/content";
 
 const icons = { target: Target, bulb: Lightbulb, chart: TrendingUp, headset: Headset };
 
-export function ClientsShowcase() {
+export function ClientsShowcase({ valueProps }: { valueProps: ValueProp[] }) {
   const valueRef = useScrollReveal<HTMLDivElement>({ selector: "[data-reveal]", stagger: 0.1 });
 
   return (

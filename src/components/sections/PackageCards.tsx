@@ -5,10 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { packagePlans, packageAddOns, customPackageBaseFee } from "@/lib/content/packages";
 import { cn } from "@/lib/cn";
+import type { PackageAddOn, PackagePlan } from "@/types/content";
 
-function PlanCard({ index, plan }: { index: number; plan: (typeof packagePlans)[number] }) {
+const customPackageBaseFee = 199;
+
+function PlanCard({ index, plan }: { index: number; plan: PackagePlan }) {
   return (
     <article
       data-package-card
@@ -55,13 +57,13 @@ function PlanCard({ index, plan }: { index: number; plan: (typeof packagePlans)[
   );
 }
 
-function CustomPackageCard({ index }: { index: number }) {
+function CustomPackageCard({ index, packageAddOns }: { index: number; packageAddOns: PackageAddOn[] }) {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   const total = useMemo(() => {
     return packageAddOns.reduce((sum, addOn) => (selected[addOn.id] ? sum + addOn.price : sum), 0) + customPackageBaseFee;
-  }, [selected]);
+  }, [packageAddOns, selected]);
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
@@ -154,7 +156,7 @@ function CustomPackageCard({ index }: { index: number }) {
   );
 }
 
-export function PackageCards() {
+export function PackageCards({ packagePlans, packageAddOns }: { packagePlans: PackagePlan[]; packageAddOns: PackageAddOn[] }) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -188,7 +190,7 @@ export function PackageCards() {
       {packagePlans.map((plan, index) => (
         <PlanCard key={plan.name} index={index} plan={plan} />
       ))}
-      <CustomPackageCard index={packagePlans.length} />
+      <CustomPackageCard index={packagePlans.length} packageAddOns={packageAddOns} />
     </div>
   );
 }

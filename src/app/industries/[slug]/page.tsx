@@ -3,18 +3,25 @@ import Image from "next/image";
 import { ArrowUpRight, Building2, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
-import { industries, getIndustry } from "@/lib/content/industries";
-import { heroStats, resultCards } from "@/lib/content/stats";
+import { getIndustries, getIndustryBySlug } from "@/lib/content/industries";
+import { getHeroStats, getResultCards } from "@/lib/content/stats";
 import { cn } from "@/lib/cn";
 
 const icons = { ecommerce: ShoppingBag, branding: Sparkles, realestate: Building2 };
 
-export function generateStaticParams() {
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const industries = await getIndustries();
   return industries.map((industry) => ({ slug: industry.slug }));
 }
 
-export default function IndustryPage({ params }: { params: { slug: string } }) {
-  const industry = getIndustry(params.slug);
+export default async function IndustryPage({ params }: { params: { slug: string } }) {
+  const [industry, heroStats, resultCards] = await Promise.all([
+    getIndustryBySlug(params.slug),
+    getHeroStats(),
+    getResultCards(),
+  ]);
   if (!industry) notFound();
 
   const Icon = icons[industry.icon];

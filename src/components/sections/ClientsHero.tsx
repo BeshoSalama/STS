@@ -11,11 +11,10 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { clientLogoImages } from "@/lib/content/clientLogos";
-import { valueProps } from "@/lib/content/clients";
-import { getProjectSlug, projects } from "@/lib/content/projects";
-import { clientStats, heroStats } from "@/lib/content/stats";
+import { getProjectSlug } from "@/lib/content/projects";
 import { useCountUp } from "@/lib/animations";
+import type { ClientLogoImage } from "@/lib/content/clientLogos";
+import type { ProjectItem, ValueProp } from "@/types/content";
 import styles from "./ClientsHero.module.css";
 
 const featureIcons = {
@@ -28,13 +27,13 @@ const featureIcons = {
 const growthArrowPath =
   "M72 600 C315 604 520 590 710 552 C920 510 1112 430 1227 254 C1290 158 1326 20 1326 -24";
 
-const projectHrefByImage = new Map(
-  projects.map((project) => [project.image, `/projects/${getProjectSlug(project.name)}`])
-);
-
-function getLogoProjectHref(file: string) {
-  return projectHrefByImage.get(file) ?? "/projects";
-}
+type ClientsHeroProps = {
+  clientLogoImages: ClientLogoImage[];
+  valueProps: ValueProp[];
+  projects: ProjectItem[];
+  heroStats: { growth: number; revenue: number; roi: number };
+  clientStats: { happyClients: number; successfulProjects: number };
+};
 
 function Skyline() {
   return (
@@ -81,8 +80,8 @@ function Skyline() {
   );
 }
 
-function GrowthPanel() {
-  const countRef = useCountUp({ end: heroStats.growth, prefix: "+", suffix: "%", duration: 0.95 });
+function GrowthPanel({ growth }: { growth: number }) {
+  const countRef = useCountUp({ end: growth, prefix: "+", suffix: "%", duration: 0.95 });
 
   return (
     <div className={`${styles.panel} ${styles.growthPanel}`}>
@@ -108,9 +107,9 @@ function GrowthPanel() {
   );
 }
 
-function RevenuePanel() {
+function RevenuePanel({ revenue }: { revenue: number }) {
   const heights = [14, 24, 32, 43, 58, 72, 88];
-  const countRef = useCountUp({ end: heroStats.revenue, prefix: "+", suffix: "K", duration: 0.95 });
+  const countRef = useCountUp({ end: revenue, prefix: "+", suffix: "K", duration: 0.95 });
 
   return (
     <div className={`${styles.panel} ${styles.revenuePanel}`}>
@@ -127,8 +126,8 @@ function RevenuePanel() {
   );
 }
 
-function RoiPanel() {
-  const countRef = useCountUp({ end: heroStats.roi, decimals: 1, suffix: "X", duration: 0.95 });
+function RoiPanel({ roi }: { roi: number }) {
+  const countRef = useCountUp({ end: roi, decimals: 1, suffix: "X", duration: 0.95 });
 
   return (
     <div className={`${styles.panel} ${styles.roiPanel}`}>
@@ -144,7 +143,8 @@ function RoiPanel() {
   );
 }
 
-export function ClientsHero() {
+export function ClientsHero({ clientLogoImages, valueProps, projects, heroStats, clientStats }: ClientsHeroProps) {
+  const projectHrefByImage = new Map(projects.map((project) => [project.image, `/projects/${getProjectSlug(project.name)}`]));
   const stageRef = useRef<HTMLDivElement | null>(null);
   const arrowSvgRef = useRef<SVGSVGElement | null>(null);
   const arrowPathRef = useRef<SVGPathElement | null>(null);
@@ -166,6 +166,10 @@ export function ClientsHero() {
       pausedDurationRef.current += performance.now() - pauseStartedRef.current;
       pauseStartedRef.current = 0;
     }
+  }
+
+  function getLogoProjectHref(file: string) {
+    return projectHrefByImage.get(file) ?? "/projects";
   }
 
   useEffect(() => {
@@ -301,9 +305,9 @@ export function ClientsHero() {
         </div>
 
         <div className={styles.analytics}>
-          <GrowthPanel />
-          <RevenuePanel />
-          <RoiPanel />
+          <GrowthPanel growth={heroStats.growth} />
+          <RevenuePanel revenue={heroStats.revenue} />
+          <RoiPanel roi={heroStats.roi} />
         </div>
 
         <div className={styles.railLayer}>

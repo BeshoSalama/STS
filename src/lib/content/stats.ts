@@ -45,3 +45,33 @@ export const clientStats = {
 };
 
 export const platforms = ["Meta", "Google Ads", "TikTok", "Shopify", "YouTube"];
+
+export async function getHeroStats() {
+  const { db } = await import("@/lib/db");
+  return (await db.heroStats.findUnique({ where: { id: 1 } })) ?? heroStats;
+}
+
+export async function getClientStats() {
+  const { db } = await import("@/lib/db");
+  return (await db.clientStats.findUnique({ where: { id: 1 } })) ?? clientStats;
+}
+
+export async function getResultCards() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.resultCard.findMany({ orderBy: { order: "asc" } });
+  return rows.map((card) => ({
+    stat: card.stat,
+    title: card.title,
+    description: card.description,
+    tone: card.tone as ResultCard["tone"],
+    industrySlug: card.industrySlug,
+    image: card.image,
+    imageAlt: card.imageAlt,
+  }));
+}
+
+export async function getPlatforms() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.platform.findMany({ orderBy: { order: "asc" } });
+  return rows.map((platform) => platform.name);
+}

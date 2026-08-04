@@ -64,3 +64,36 @@ export const packageAddOns: PackageAddOn[] = [
 ];
 
 export const customPackageBaseFee = 199;
+
+function parseFeatures(features: string) {
+  try {
+    const parsed = JSON.parse(features);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getPackagePlans() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.packagePlan.findMany({
+    where: { name: { not: "Custom Package Base Fee" } },
+    orderBy: { order: "asc" },
+  });
+  return rows.map((plan) => ({
+    name: plan.name,
+    tagline: plan.tagline,
+    price: plan.price,
+    period: plan.period,
+    description: plan.description,
+    features: parseFeatures(plan.features),
+    cta: plan.cta,
+    featured: plan.featured,
+  }));
+}
+
+export async function getPackageAddOns() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.packageAddOn.findMany({ orderBy: { order: "asc" } });
+  return rows.map(({ id, label, description, price }) => ({ id, label, description, price }));
+}

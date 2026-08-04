@@ -1,4 +1,3 @@
-import { platforms } from "@/lib/content/stats";
 import { Infinity, ShoppingBag, Youtube } from "lucide-react";
 import { TikTokIcon } from "@/components/icons/SocialIcons";
 
@@ -32,7 +31,7 @@ function PlatformIcon({ name }: { name: string }) {
   return null;
 }
 
-export function ClientLogoMarquee() {
+export function ClientLogoMarquee({ platforms }: { platforms: string[] }) {
   return (
     <section className="border-y border-violet-400/25 bg-surface-card/75 py-7 backdrop-blur-xl">
       <div className="container">

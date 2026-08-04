@@ -4,8 +4,8 @@ import type { CSSProperties } from "react";
 import { Activity, Compass, LineChart, MessageSquareText, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/lib/animations";
 import { Button } from "@/components/ui/Button";
-import { services } from "@/lib/content/services";
 import { cn } from "@/lib/cn";
+import type { ServiceItem } from "@/types/content";
 
 const icons = {
   consulting: MessageSquareText,
@@ -19,7 +19,7 @@ const chartHeights = [
   [32, 25, 46, 52, 47, 68, 80, 88],
 ];
 
-export function ServiceCards() {
+export function ServiceCards({ services }: { services: ServiceItem[] }) {
   const ref = useScrollReveal<HTMLDivElement>({ selector: "[data-reveal]", stagger: 0.14 });
 
   return (

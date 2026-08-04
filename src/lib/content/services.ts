@@ -26,3 +26,15 @@ export const services: ServiceItem[] = [
     cta: "Business Strategy",
   },
 ];
+
+export async function getServices() {
+  const { db } = await import("@/lib/db");
+  const rows = await db.serviceItem.findMany({ orderBy: { order: "asc" } });
+  return rows.map((service) => ({
+    icon: service.icon as ServiceItem["icon"],
+    eyebrow: service.eyebrow,
+    title: service.title,
+    description: service.description,
+    cta: service.cta,
+  }));
+}

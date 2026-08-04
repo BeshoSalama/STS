@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { useScrollReveal } from "@/lib/animations";
-import { getProjectSlug, projects } from "@/lib/content/projects";
+import { getProjectSlug } from "@/lib/content/projects";
+import type { ProjectItem } from "@/types/content";
 
-export function ProjectGrid() {
+export function ProjectGrid({ projects }: { projects: ProjectItem[] }) {
   const ref = useScrollReveal<HTMLDivElement>({ selector: "[data-reveal]", stagger: 0.14 });
 
   return (

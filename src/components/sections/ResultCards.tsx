@@ -7,7 +7,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useCountUp } from "@/lib/animations";
-import { resultCards } from "@/lib/content/stats";
+import type { ResultCard } from "@/types/content";
 
 function CountUpStat({ stat }: { stat: string }) {
   const match = stat.match(/^([^0-9]*)([0-9]+(?:\.[0-9]+)?)(.*)$/);
@@ -21,7 +21,7 @@ function CountUpStat({ stat }: { stat: string }) {
   return <span ref={countRef}>{`${prefix}${(0).toFixed(decimals)}${suffix}`}</span>;
 }
 
-export function ResultCards() {
+export function ResultCards({ resultCards }: { resultCards: ResultCard[] }) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
