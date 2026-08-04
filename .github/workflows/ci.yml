@@ -1,0 +1,42 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: file:./dev.db
+      NEXTAUTH_SECRET: test-secret
+      NEXTAUTH_URL: http://localhost:3000
+      RESEND_API_KEY: ""
+      LEADS_NOTIFICATION_EMAIL: sales@stsagency.com
+      UPSTASH_REDIS_REST_URL: ""
+      UPSTASH_REDIS_REST_TOKEN: ""
+      REVALIDATE_SECRET: test-revalidate-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Apply local SQLite migration
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          sql = Path('prisma/migrations/20260804165000_init/migration.sql').read_text()
+          db_path = Path('prisma/dev.db')
+          if db_path.exists():
+              db_path.unlink()
+          conn = sqlite3.connect(db_path)
+          conn.executescript(sql)
+          conn.commit()
+          conn.close()
+          PY
+      - run: npm run db:seed
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
