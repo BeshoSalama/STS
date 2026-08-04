@@ -1,0 +1,37 @@
+import { z } from "zod";
+
+const optionalText = z.string().trim().optional();
+
+export const briefSchema = z.object({
+  clientName: z.string().trim().min(2),
+  brandName: z.string().trim().min(2),
+  briefDate: optionalText,
+  email: z.string().trim().email().optional().or(z.literal("")),
+  phone: z.string().trim().min(6),
+  mainGoals: optionalText,
+  roleModel: optionalText,
+  competitorsLinks: optionalText,
+  brandIdentity: optionalText,
+  brandLevel: optionalText,
+  customerSegment: optionalText,
+  businessType: optionalText,
+  socialPlatforms: z.array(z.string()).default([]),
+  brandSlogan: optionalText,
+  preferredColors: optionalText,
+  colorNumbers: optionalText,
+  toneOfVoice: z.array(z.string()).default([]),
+  advertisingPlatforms: z.array(z.string()).default([]),
+  adsBudget: optionalText,
+  targetAge: optionalText,
+  branchesNumber: z.coerce.number().int().positive().optional().or(z.literal("").transform(() => undefined)),
+  locations: optionalText,
+  gender: optionalText,
+  languages: z.array(z.string()).default([]),
+  platformLinks: optionalText,
+  notes: optionalText,
+  businessModel: optionalText,
+  digitalMarketingExperience: optionalText,
+  uniqueSellingPoints: optionalText,
+  planObjectives: optionalText,
+  website: z.string().optional(),
+});

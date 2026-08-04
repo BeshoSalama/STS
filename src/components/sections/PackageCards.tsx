@@ -57,6 +57,7 @@ function PlanCard({ index, plan }: { index: number; plan: (typeof packagePlans)[
 
 function CustomPackageCard({ index }: { index: number }) {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   const total = useMemo(() => {
     return packageAddOns.reduce((sum, addOn) => (selected[addOn.id] ? sum + addOn.price : sum), 0) + customPackageBaseFee;
@@ -66,6 +67,26 @@ function CustomPackageCard({ index }: { index: number }) {
 
   function toggle(id: string) {
     setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  async function requestQuote() {
+    setStatus("loading");
+    const addOnIds = Object.entries(selected)
+      .filter(([, isSelected]) => isSelected)
+      .map(([id]) => id);
+
+    try {
+      const response = await fetch("/api/leads/package-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planName: "Custom Package", addOnIds }),
+      });
+
+      if (!response.ok) throw new Error("Could not save quote");
+      setStatus("done");
+    } catch {
+      setStatus("error");
+    }
   }
 
   return (
@@ -118,9 +139,17 @@ function CustomPackageCard({ index }: { index: number }) {
         })}
       </div>
 
-      <Button href="/contact" className="mt-8 w-full justify-center py-3.5">
-        Request This Package
-      </Button>
+      {status === "done" && <p className="mt-4 text-sm font-semibold text-emerald-600">Quote saved. We will use it when you contact us.</p>}
+      {status === "error" && <p className="mt-4 text-sm font-semibold text-red-600">Could not save quote. Please try again.</p>}
+
+      <button
+        type="button"
+        onClick={requestQuote}
+        disabled={status === "loading"}
+        className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-violet-gradient px-5 py-3.5 text-sm font-bold text-white shadow-card transition hover:-translate-y-0.5 hover:shadow-card-lg disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {status === "loading" ? "Saving..." : "Request This Package"}
+      </button>
     </article>
   );
 }

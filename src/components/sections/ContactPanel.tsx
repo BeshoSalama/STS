@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Facebook, MapPin, MessageCircle, Navigation, Send } from "lucide-react";
 import { siteConfig } from "@/lib/content/nav";
 import { consultationAvailability } from "@/lib/content/consultationAvailability";
@@ -22,8 +22,18 @@ type ConsultationDay = {
 };
 
 async function submitContactForm(data: ConsultationRequest) {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  return { ok: true, ...data };
+  const response = await fetch("/api/leads/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(result?.error ?? "Could not book this consultation");
+  }
+
+  return response.json();
 }
 
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -53,16 +63,15 @@ function addDays(date: Date, days: number) {
   return nextDate;
 }
 
-function buildWeekDays(weekOffset: number): ConsultationDay[] {
+function buildWeekDays(weekOffset: number, fullyBookedDates: Set<string>): ConsultationDay[] {
   const today = startOfDay(new Date());
-  const bookedDates = new Set(consultationAvailability.fullyBookedDates);
   const weekStart = addDays(getSundayOfWeek(today), weekOffset * 7);
 
   return consultationAvailability.workingDays.map((dayNumber) => {
     const date = addDays(weekStart, dayNumber);
     const dateKey = formatDateKey(date);
     const isPast = date < today;
-    const isBooked = bookedDates.has(dateKey);
+    const isBooked = fullyBookedDates.has(dateKey);
 
     return {
       date,
@@ -132,18 +141,50 @@ export function ContactPanel() {
   const [phone, setPhone] = useState("");
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
-  const weekDays = useMemo(() => buildWeekDays(weekOffset), [weekOffset]);
+  const [fullyBookedDates, setFullyBookedDates] = useState(() => new Set(consultationAvailability.fullyBookedDates));
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const weekDays = useMemo(() => buildWeekDays(weekOffset, fullyBookedDates), [fullyBookedDates, weekOffset]);
   const maxWeekOffset = consultationAvailability.weeksToShow - 1;
   const weekStart = weekDays[0]?.date;
   const weekEnd = weekDays[weekDays.length - 1]?.date;
+
+  useEffect(() => {
+    if (!weekStart || !weekEnd) return;
+
+    const controller = new AbortController();
+    fetch(`/api/availability?from=${formatDateKey(weekStart)}&to=${formatDateKey(weekEnd)}`, {
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Could not load availability"))))
+      .then((data: { days?: { date: string; fullyBooked: boolean }[] }) => {
+        const dates = new Set(consultationAvailability.fullyBookedDates);
+        for (const day of data.days ?? []) {
+          if (day.fullyBooked) dates.add(day.date);
+        }
+        setFullyBookedDates(dates);
+      })
+      .catch((error) => {
+        if ((error as Error).name !== "AbortError") {
+          setMessage("Availability is temporarily using the default calendar.");
+        }
+      });
+
+    return () => controller.abort();
+  }, [weekEnd, weekStart]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !phone || !selectedDate) return;
     setStatus("loading");
-    await submitContactForm({ name, phone, consultationDate: selectedDate });
-    setStatus("done");
+    setMessage("");
+    try {
+      await submitContactForm({ name, phone, consultationDate: selectedDate });
+      setStatus("done");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not book this consultation");
+      setStatus("error");
+    }
   }
 
   return (
@@ -164,6 +205,11 @@ export function ContactPanel() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="contact-reference-fields">
+              {status === "error" && message && (
+                <div className="contact-reference-success border-red-200 bg-red-50 text-red-700">
+                  <p>{message}</p>
+                </div>
+              )}
               <div className="consultation-scheduler" aria-label="Choose consultation day">
                 <div className="consultation-scheduler__header">
                   <span>

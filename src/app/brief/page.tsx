@@ -140,12 +140,40 @@ function Section({
 }
 
 export default function BriefPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [message, setMessage] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
-    event.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+    setStatus("loading");
+    setMessage("");
+
+    const formElement = event.currentTarget;
+    const formData = new FormData(formElement);
+    const payload = Object.fromEntries(formData.entries()) as Record<string, FormDataEntryValue | string[]>;
+
+    for (const key of ["socialPlatforms", "toneOfVoice", "advertisingPlatforms", "languages"]) {
+      payload[key] = formData.getAll(key).map(String);
+    }
+
+    try {
+      const response = await fetch("/api/leads/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not submit the brief");
+      }
+
+      setStatus("done");
+      formElement.reset();
+      formElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Could not submit the brief");
+    }
   }
 
   return (
@@ -168,10 +196,15 @@ export default function BriefPage() {
           onSubmit={handleSubmit}
           className="grid gap-8 rounded-[1.75rem] border border-violet-300/18 bg-[#16072d]/82 p-5 shadow-card-lg backdrop-blur-xl sm:p-7 lg:p-9"
         >
-          {submitted && (
+          {status === "done" && (
             <div className="flex items-center gap-3 rounded-xl border border-emerald-300/22 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100">
               <CheckCircle2 size={19} />
-              Brief saved on this page. The rest of the PDF was skipped.
+              Brief submitted. Our team will review it shortly.
+            </div>
+          )}
+          {status === "error" && (
+            <div className="rounded-xl border border-red-300/24 bg-red-400/10 px-4 py-3 text-sm font-semibold text-red-100">
+              {message}
             </div>
           )}
 
@@ -231,10 +264,11 @@ export default function BriefPage() {
             <p className="text-sm font-medium text-white/58">Only the first 5 PDF pages are included.</p>
             <button
               type="submit"
+              disabled={status === "loading"}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-violet-gradient px-6 text-sm font-extrabold text-white shadow-card transition hover:shadow-card-lg"
               data-ripple
             >
-              Submit Brief
+              {status === "loading" ? "Submitting..." : "Submit Brief"}
               <Send size={16} />
             </button>
           </div>

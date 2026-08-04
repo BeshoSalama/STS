@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { getClientIp, rateLimit } from "@/lib/rateLimit";
 import { registerSchema } from "@/lib/validations/auth";
 
 export async function POST(req: Request) {
+  const limited = await rateLimit(`register:${getClientIp(req)}`, 4);
+  if (!limited.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const body = await req.json().catch(() => null);
   const parsed = registerSchema.safeParse(body);
 
