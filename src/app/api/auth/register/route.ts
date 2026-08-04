@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { db } from "@/lib/db";
+import { registerSchema } from "@/lib/validations/auth";
+
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => null);
+  const parsed = registerSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
+  if (existing) {
+    return NextResponse.json({ error: "Email is already registered" }, { status: 409 });
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const user = await db.user.create({
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash,
+      role: "CLIENT",
+    },
+    select: { id: true, name: true, email: true, role: true },
+  });
+
+  return NextResponse.json({ user }, { status: 201 });
+}

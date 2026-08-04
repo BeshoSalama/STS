@@ -1,4 +1,9 @@
+"use client";
+
+import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { ArrowRight, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -32,13 +37,19 @@ const copy = {
 function Field({
   icon,
   label,
+  name,
   type,
   placeholder,
+  value,
+  onChange,
 }: {
   icon: React.ReactNode;
   label: string;
+  name: string;
   type: string;
   placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
 }) {
   return (
     <label className="block">
@@ -46,8 +57,11 @@ function Field({
       <span className="flex items-center gap-3 rounded-full border border-violet-400/30 bg-white/10 px-5 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] transition focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-400/30">
         <span className="text-violet-500">{icon}</span>
         <input
+          name={name}
           type={type}
           placeholder={placeholder}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
           className="min-w-0 flex-1 bg-transparent text-sm font-medium text-ink outline-none placeholder:text-muted/65"
         />
       </span>
@@ -56,8 +70,54 @@ function Field({
 }
 
 export function AuthPanel({ mode }: AuthPanelProps) {
+  const router = useRouter();
   const data = copy[mode];
   const isRegister = mode === "register";
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [status, setStatus] = useState<"idle" | "loading">("idle");
+  const [message, setMessage] = useState("");
+
+  function updateField(field: keyof typeof form, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      if (isRegister) {
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(typeof data?.error === "string" ? data.error : "Could not create account");
+        }
+      }
+
+      const result = await signIn("credentials", {
+        email: form.email,
+        password: form.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        throw new Error("Invalid email or password");
+      }
+
+      router.push("/portal");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setStatus("idle");
+    }
+  }
 
   return (
     <section className="relative min-h-screen overflow-hidden px-4 pb-20 pt-32 sm:pt-36">
@@ -84,30 +144,64 @@ export function AuthPanel({ mode }: AuthPanelProps) {
               <p className="mt-2 text-sm text-muted">{data.subtitle}</p>
             </div>
 
-            <form className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {isRegister && (
-                <Field icon={<UserRound size={18} />} label="Name" type="text" placeholder="Your name" />
+                <Field
+                  icon={<UserRound size={18} />}
+                  label="Name"
+                  name="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={form.name}
+                  onChange={(value) => updateField("name", value)}
+                />
               )}
-              <Field icon={<Mail size={18} />} label="Email" type="email" placeholder="you@company.com" />
-              <Field icon={<LockKeyhole size={18} />} label="Password" type="password" placeholder="Password" />
+              <Field
+                icon={<Mail size={18} />}
+                label="Email"
+                name="email"
+                type="email"
+                placeholder="you@company.com"
+                value={form.email}
+                onChange={(value) => updateField("email", value)}
+              />
+              <Field
+                icon={<LockKeyhole size={18} />}
+                label="Password"
+                name="password"
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={(value) => updateField("password", value)}
+              />
 
               {isRegister && (
                 <Field
                   icon={<LockKeyhole size={18} />}
                   label="Confirm Password"
+                  name="confirmPassword"
                   type="password"
                   placeholder="Confirm password"
+                  value={form.confirmPassword}
+                  onChange={(value) => updateField("confirmPassword", value)}
                 />
               )}
 
+              {message && (
+                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  {message}
+                </p>
+              )}
+
               <button
-                type="button"
+                type="submit"
+                disabled={status === "loading"}
                 className={cn(
                   "group flex w-full items-center justify-center gap-3 rounded-full px-6 py-4 text-sm font-bold text-white shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-card-lg",
-                  "bg-violet-gradient"
+                  "bg-violet-gradient disabled:cursor-not-allowed disabled:opacity-70"
                 )}
               >
-                {data.button}
+                {status === "loading" ? "Please wait..." : data.button}
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 group-hover:translate-x-1">
                   <ArrowRight size={15} />
                 </span>
