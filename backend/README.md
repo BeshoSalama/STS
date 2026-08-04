@@ -12,6 +12,18 @@ Default URL:
 http://localhost:4000
 ```
 
+Swagger UI:
+
+```text
+http://localhost:4000/api-docs
+```
+
+OpenAPI JSON:
+
+```text
+http://localhost:4000/openapi.json
+```
+
 Health check:
 
 ```text

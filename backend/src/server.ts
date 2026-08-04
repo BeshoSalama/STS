@@ -15,9 +15,258 @@ const port = Number(process.env.API_PORT ?? 4000);
 const frontendOrigin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 const DEFAULT_DAY_CAPACITY = 6;
 const CUSTOM_PACKAGE_BASE_FEE = 199;
+const openApiDocument = {
+  openapi: "3.0.3",
+  info: {
+    title: "STS Agency Backend API",
+    version: "1.0.0",
+    description: "Standalone API for STS Agency leads, auth, availability, and quotes.",
+  },
+  servers: [{ url: `http://localhost:${port}` }],
+  tags: [
+    { name: "System" },
+    { name: "Auth" },
+    { name: "Availability" },
+    { name: "Leads" },
+  ],
+  paths: {
+    "/health": {
+      get: {
+        tags: ["System"],
+        summary: "Backend health check",
+        responses: {
+          "200": {
+            description: "API is running",
+            content: {
+              "application/json": {
+                example: { ok: true, service: "sts-backend" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/register": {
+      post: {
+        tags: ["Auth"],
+        summary: "Register a client account",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/RegisterRequest" },
+              example: {
+                name: "Jane Client",
+                email: "jane@example.com",
+                password: "Password123!",
+                confirmPassword: "Password123!",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Account created" },
+          "400": { description: "Validation error" },
+          "409": { description: "Email already registered" },
+        },
+      },
+    },
+    "/api/auth/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Validate login credentials for standalone API use",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/LoginRequest" },
+              example: { email: "admin@sts.local", password: "Admin123456!" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Credentials are valid" },
+          "401": { description: "Invalid credentials" },
+        },
+      },
+    },
+    "/api/availability": {
+      get: {
+        tags: ["Availability"],
+        summary: "Get consultation availability",
+        parameters: [
+          { name: "from", in: "query", required: true, schema: { type: "string", example: "2026-08-04" } },
+          { name: "to", in: "query", required: true, schema: { type: "string", example: "2026-08-18" } },
+        ],
+        responses: {
+          "200": { description: "Availability days" },
+          "400": { description: "Missing date range" },
+        },
+      },
+    },
+    "/api/leads/contact": {
+      post: {
+        tags: ["Leads"],
+        summary: "Book a consultation and create a lead",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ContactRequest" },
+              example: { name: "Jane Client", phone: "+201001234567", consultationDate: "2026-08-12" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Booking created" },
+          "409": { description: "Day full, blocked, or duplicate booking" },
+        },
+      },
+    },
+    "/api/leads/brief": {
+      post: {
+        tags: ["Leads"],
+        summary: "Submit a client brief",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/BriefRequest" },
+              example: {
+                clientName: "Jane Client",
+                brandName: "Jane Brand",
+                phone: "+201001234567",
+                email: "jane@example.com",
+                socialPlatforms: ["Facebook"],
+                toneOfVoice: ["Formal"],
+                advertisingPlatforms: ["Google"],
+                languages: ["ENG"],
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Brief saved" },
+          "400": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/leads/package-quote": {
+      post: {
+        tags: ["Leads"],
+        summary: "Calculate and save a package quote",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PackageQuoteRequest" },
+              example: { planName: "Custom Package", addOnIds: ["ads", "seo"] },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Quote saved with server-calculated total" },
+          "400": { description: "Validation error" },
+        },
+      },
+    },
+  },
+  components: {
+    schemas: {
+      RegisterRequest: {
+        type: "object",
+        required: ["name", "email", "password", "confirmPassword"],
+        properties: {
+          name: { type: "string" },
+          email: { type: "string", format: "email" },
+          password: { type: "string", minLength: 8 },
+          confirmPassword: { type: "string", minLength: 8 },
+        },
+      },
+      LoginRequest: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email" },
+          password: { type: "string" },
+        },
+      },
+      ContactRequest: {
+        type: "object",
+        required: ["name", "phone", "consultationDate"],
+        properties: {
+          name: { type: "string" },
+          phone: { type: "string" },
+          consultationDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+          website: { type: "string", description: "Honeypot field" },
+        },
+      },
+      BriefRequest: {
+        type: "object",
+        required: ["clientName", "brandName", "phone"],
+        properties: {
+          clientName: { type: "string" },
+          brandName: { type: "string" },
+          briefDate: { type: "string" },
+          email: { type: "string", format: "email" },
+          phone: { type: "string" },
+          mainGoals: { type: "string" },
+          socialPlatforms: { type: "array", items: { type: "string" } },
+          toneOfVoice: { type: "array", items: { type: "string" } },
+          advertisingPlatforms: { type: "array", items: { type: "string" } },
+          languages: { type: "array", items: { type: "string" } },
+        },
+      },
+      PackageQuoteRequest: {
+        type: "object",
+        properties: {
+          planName: { type: "string" },
+          addOnIds: { type: "array", items: { type: "string" } },
+          website: { type: "string", description: "Honeypot field" },
+        },
+      },
+    },
+  },
+};
 
 app.use(cors({ origin: frontendOrigin, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
+
+app.get("/", (_req, res) => {
+  res.redirect("/api-docs");
+});
+
+app.get("/openapi.json", (_req, res) => {
+  res.json(openApiDocument);
+});
+
+app.get("/api-docs", (_req, res) => {
+  res.type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>STS Agency API Docs</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <style>
+      body { margin: 0; background: #f7f7f7; }
+      .topbar { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.ui = SwaggerUIBundle({
+        url: "/openapi.json",
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        presets: [SwaggerUIBundle.presets.apis],
+      });
+    </script>
+  </body>
+</html>`);
+});
 
 function parseDateKey(dateKey: string) {
   return new Date(`${dateKey}T00:00:00.000Z`);

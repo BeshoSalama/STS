@@ -30,6 +30,12 @@ Backend URL:
 http://localhost:4000
 ```
 
+API docs / Swagger:
+
+```text
+http://localhost:4000/api-docs
+```
+
 Health check:
 
 ```text
