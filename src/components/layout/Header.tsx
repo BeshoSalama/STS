@@ -27,7 +27,7 @@ export function Header() {
   const hasPositioned = useRef(false);
   const projectsLinkRef = useRef<HTMLAnchorElement | null>(null);
   const loginLinkRef = useRef<HTMLAnchorElement | null>(null);
-  const userHref = user?.role === "ADMIN" || user?.role === "STAFF" ? "/admin" : "/portal";
+  const userHref = "/profile";
   const userLabel = user?.name || user?.email?.split("@")[0] || "Account";
 
   useEffect(() => {

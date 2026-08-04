@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { requireStaffSession } from "@/lib/rbac";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/projects" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
               Projects
             </Link>
+            <Link href="/profile" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
+              Profile
+            </Link>
+            <LogoutButton />
           </nav>
         </div>
         {children}

@@ -1,5 +1,10 @@
 import { auth } from "@/lib/auth";
 
+export async function requireSession() {
+  const session = await auth();
+  return session?.user?.id ? session : null;
+}
+
 export async function requireStaffSession() {
   const session = await auth();
   const role = session?.user?.role;

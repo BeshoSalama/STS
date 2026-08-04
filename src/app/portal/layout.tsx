@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { requireClientSession } from "@/lib/rbac";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -19,9 +20,10 @@ export default async function PortalLayout({ children }: { children: React.React
             <Link href="/portal" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
               Requests
             </Link>
-            <Link href="/portal/profile" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
+            <Link href="/profile" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
               Profile
             </Link>
+            <LogoutButton />
           </nav>
         </div>
         {children}
