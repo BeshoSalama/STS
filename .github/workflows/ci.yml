@@ -1,42 +1,104 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     env:
-      DATABASE_URL: file:./dev.db
-      NEXTAUTH_SECRET: test-secret
-      NEXTAUTH_URL: http://localhost:3000
+      DATABASE_URL: "sqlserver://localhost:1433;database=STSAgencyCI;user=sa;password=StsCI_2026_Strong!Pass;encrypt=true;trustServerCertificate=true"
+
+      AUTH_SECRET: "test-secret"
+      AUTH_URL: "http://localhost:3000"
+      AUTH_TRUST_HOST: "true"
+
+      NEXTAUTH_SECRET: "test-secret"
+      NEXTAUTH_URL: "http://localhost:3000"
+
+      AUTH_GOOGLE_ID: "test-google-client-id"
+      AUTH_GOOGLE_SECRET: "test-google-client-secret"
+
       RESEND_API_KEY: ""
-      LEADS_NOTIFICATION_EMAIL: sales@stsagency.com
+      LEADS_NOTIFICATION_EMAIL: "sales@stsagency.com"
+
       UPSTASH_REDIS_REST_URL: ""
       UPSTASH_REDIS_REST_TOKEN: ""
-      REVALIDATE_SECRET: test-revalidate-secret
+
+      REVALIDATE_SECRET: "test-revalidate-secret"
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx prisma generate
-      - name: Apply local SQLite migration
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start SQL Server
         run: |
-          python - <<'PY'
-          import sqlite3
-          from pathlib import Path
-          sql = Path('prisma/migrations/20260804165000_init/migration.sql').read_text()
-          db_path = Path('prisma/dev.db')
-          if db_path.exists():
-              db_path.unlink()
-          conn = sqlite3.connect(db_path)
-          conn.executescript(sql)
-          conn.commit()
-          conn.close()
-          PY
-      - run: npm run db:seed
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test
+          docker run \
+            --name sts-ci-sqlserver \
+            -e ACCEPT_EULA=Y \
+            -e MSSQL_SA_PASSWORD='StsCI_2026_Strong!Pass' \
+            -p 1433:1433 \
+            -d \
+            mcr.microsoft.com/mssql/server:2022-latest
+
+      - name: Wait for SQL Server
+        run: |
+          echo "Waiting for SQL Server..."
+
+          for i in {1..30}; do
+            if docker exec sts-ci-sqlserver \
+              /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost \
+              -U sa \
+              -P 'StsCI_2026_Strong!Pass' \
+              -C \
+              -Q "SELECT 1" > /dev/null 2>&1; then
+
+              echo "SQL Server is ready."
+              exit 0
+            fi
+
+            echo "SQL Server is not ready yet..."
+            sleep 2
+          done
+
+          echo "SQL Server failed to start."
+          docker logs sts-ci-sqlserver
+          exit 1
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed database
+        run: npm run db:seed
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Show SQL Server logs on failure
+        if: failure()
+        run: docker logs sts-ci-sqlserver || true
+
+      - name: Stop SQL Server
+        if: always()
+        run: docker rm -f sts-ci-sqlserver || true
