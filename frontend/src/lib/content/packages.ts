@@ -15,6 +15,7 @@ export const packagePlans: PackagePlan[] = [
       "Email support",
     ],
     cta: "Get Started",
+    order: 0,
   },
   {
     name: "Growth",
@@ -32,6 +33,7 @@ export const packagePlans: PackagePlan[] = [
     ],
     cta: "Get Started",
     featured: true,
+    order: 1,
   },
   {
     name: "Premium",
@@ -49,21 +51,63 @@ export const packagePlans: PackagePlan[] = [
       "Real-time analytics dashboard",
     ],
     cta: "Get Started",
+    order: 2,
   },
 ];
 
 export const packageAddOns: PackageAddOn[] = [
-  { id: "social", label: "Social Media Management", description: "Content, scheduling & community management", price: 350 },
-  { id: "ads", label: "Paid Ads Management", description: "Meta, Google & TikTok campaigns", price: 450 },
-  { id: "seo", label: "SEO & Content", description: "On-page SEO and blog content production", price: 300 },
-  { id: "branding", label: "Branding & Design", description: "Visual identity and creative assets", price: 400 },
-  { id: "email", label: "Email Marketing", description: "Newsletters and lifecycle automation", price: 200 },
-  { id: "influencer", label: "Influencer Marketing", description: "Creator sourcing & campaign management", price: 350 },
-  { id: "automation", label: "Marketing Automation", description: "CRM workflows & lead nurturing", price: 300 },
-  { id: "reporting", label: "Analytics & Reporting", description: "Custom dashboards & monthly insights", price: 150 },
+  {
+    id: "social",
+    label: "Social Media Management",
+    description: "Content, scheduling & community management",
+    price: 350,
+  },
+  {
+    id: "ads",
+    label: "Paid Ads Management",
+    description: "Meta, Google & TikTok campaigns",
+    price: 450,
+  },
+  {
+    id: "seo",
+    label: "SEO & Content",
+    description: "On-page SEO and blog content production",
+    price: 300,
+  },
+  {
+    id: "branding",
+    label: "Branding & Design",
+    description: "Visual identity and creative assets",
+    price: 400,
+  },
+  {
+    id: "email",
+    label: "Email Marketing",
+    description: "Newsletters and lifecycle automation",
+    price: 200,
+  },
+  {
+    id: "influencer",
+    label: "Influencer Marketing",
+    description: "Creator sourcing & campaign management",
+    price: 350,
+  },
+  {
+    id: "automation",
+    label: "Marketing Automation",
+    description: "CRM workflows & lead nurturing",
+    price: 300,
+  },
+  {
+    id: "reporting",
+    label: "Analytics & Reporting",
+    description: "Custom dashboards & monthly insights",
+    price: 150,
+  },
 ];
 
 export const customPackageBaseFee = 199;
+
 export const customPackageMeta = {
   tagline: "Tailored to your unique goals",
   description: "Pick exactly the services you need. Nothing you don't.",
@@ -71,15 +115,52 @@ export const customPackageMeta = {
   period: "/mo",
 };
 
-export async function getPackagePlans() {
+export async function getPackagePlans(): Promise<PackagePlan[]> {
+  const { db } = await import("@/lib/db");
+
   try {
-    const { db } = await import("@/lib/db");
-    const storedPlans = await db.packagePlan.findMany({
-      where: { name: { not: "Custom Package Base Fee" } },
-      orderBy: { order: "asc" },
+    let storedPlans = await db.packagePlan.findMany({
+      where: {
+        name: {
+          not: "Custom Package Base Fee",
+        },
+      },
+      orderBy: {
+        order: "asc",
+      },
     });
 
-    if (storedPlans.length === 0) return packagePlans;
+    /*
+     * لو قاعدة البيانات لسه فاضية:
+     * ننشئ Starter / Growth / Premium فيها فعليًا
+     * عشان كل خطة يبقى ليها ID حقيقي.
+     */
+    if (storedPlans.length === 0) {
+      await db.packagePlan.createMany({
+        data: packagePlans.map((plan, index) => ({
+          name: plan.name,
+          tagline: plan.tagline,
+          price: plan.price,
+          period: plan.period,
+          description: plan.description,
+          features: JSON.stringify(plan.features),
+          cta: plan.cta,
+          featured: plan.featured ?? false,
+          order: plan.order ?? index,
+        })),
+      });
+
+      storedPlans = await db.packagePlan.findMany({
+        where: {
+          name: {
+            not: "Custom Package Base Fee",
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      });
+    }
 
     return storedPlans.map((plan) => ({
       id: plan.id,
@@ -93,54 +174,84 @@ export async function getPackagePlans() {
       featured: plan.featured,
       order: plan.order,
     }));
-  } catch {
-    return packagePlans;
+  } catch (error) {
+    console.error("getPackagePlans failed:", error);
+    throw error;
   }
 }
 
-export async function getPackageAddOns() {
+export async function getPackageAddOns(): Promise<PackageAddOn[]> {
+  const { db } = await import("@/lib/db");
+
   try {
-    const { db } = await import("@/lib/db");
-    const storedAddOns = await db.packageAddOn.findMany({ orderBy: { order: "asc" } });
+    const storedAddOns = await db.packageAddOn.findMany({
+      orderBy: {
+        order: "asc",
+      },
+    });
 
     return storedAddOns.length > 0 ? storedAddOns : packageAddOns;
-  } catch {
+  } catch (error) {
+    console.error("getPackageAddOns failed:", error);
     return packageAddOns;
   }
 }
 
 export async function getCustomPackageBaseFee() {
+  const { db } = await import("@/lib/db");
+
   try {
-    const { db } = await import("@/lib/db");
     const customPlan = await db.packagePlan.findFirst({
-      where: { name: "Custom Package Base Fee" },
-      select: { price: true },
+      where: {
+        name: "Custom Package Base Fee",
+      },
+      select: {
+        price: true,
+      },
     });
 
-    const parsedPrice = Number(customPlan?.price.replace(/[^0-9]/g, ""));
-    return Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : customPackageBaseFee;
-  } catch {
+    const parsedPrice = Number(
+      customPlan?.price.replace(/[^0-9]/g, "")
+    );
+
+    return Number.isFinite(parsedPrice) && parsedPrice > 0
+      ? parsedPrice
+      : customPackageBaseFee;
+  } catch (error) {
+    console.error("getCustomPackageBaseFee failed:", error);
     return customPackageBaseFee;
   }
 }
 
 export async function getCustomPackageMeta() {
+  const { db } = await import("@/lib/db");
+
   try {
-    const { db } = await import("@/lib/db");
     const customPlan = await db.packagePlan.findFirst({
-      where: { name: "Custom Package Base Fee" },
-      select: { tagline: true, description: true, cta: true, period: true },
+      where: {
+        name: "Custom Package Base Fee",
+      },
+      select: {
+        tagline: true,
+        description: true,
+        cta: true,
+        period: true,
+      },
     });
 
-    if (!customPlan) return customPackageMeta;
+    if (!customPlan) {
+      return customPackageMeta;
+    }
 
     return {
       tagline: customPlan.tagline || customPackageMeta.tagline,
-      description: customPlan.description || customPackageMeta.description,
+      description:
+        customPlan.description || customPackageMeta.description,
       cta: customPlan.cta || customPackageMeta.cta,
       period: customPlan.period || customPackageMeta.period,
     };
-  } catch {
+  } catch (error) {
+    console.error("getCustomPackageMeta failed:", error);
     return customPackageMeta;
   }
 }
@@ -148,7 +259,10 @@ export async function getCustomPackageMeta() {
 function jsonToStringArray(value: string) {
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+
+    return Array.isArray(parsed)
+      ? parsed.map(String)
+      : [];
   } catch {
     return value
       .split("\n")
