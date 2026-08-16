@@ -17,20 +17,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   trustHost: true,
 
-  // Custom PKCE cookie to avoid conflicts with old/stale Auth.js cookies
-  cookies: {
-    pkceCodeVerifier: {
-      name: "__Secure-sts-auth.pkce.code_verifier",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-        maxAge: 60 * 15,
-      },
-    },
-  },
-
   session: {
     strategy: "jwt",
   },
@@ -39,31 +25,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
 
+  cookies: {
+    pkceCodeVerifier: {
+      name: "__Secure-sts-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: true,
+        domain:
+          process.env.NODE_ENV === "production"
+            ? ".sts-m.com"
+            : undefined,
+        maxAge: 60 * 15,
+      },
+    },
+  },
+
   providers: [
     Google({
       clientId:
         process.env.AUTH_GOOGLE_ID ??
-        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_ID ??
+        "",
 
       clientSecret:
         process.env.AUTH_GOOGLE_SECRET ??
-        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_CLIENT_SECRET ??
+        "",
 
       allowDangerousEmailAccountLinking: true,
 
       authorization: {
         params: {
           prompt: "select_account",
+          scope: "openid email profile",
         },
       },
     }),
 
     Credentials({
+      name: "Credentials",
+
       credentials: {
         email: {
           label: "Email",
           type: "email",
         },
+
         password: {
           label: "Password",
           type: "password",
@@ -83,7 +92,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
 
-        if (!user?.passwordHash || !user.emailVerified) {
+        if (!user) {
+          return null;
+        }
+
+        if (!user.passwordHash) {
+          return null;
+        }
+
+        if (!user.emailVerified) {
           return null;
         }
 
@@ -100,6 +117,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name ?? user.email,
           email: user.email,
+          image: user.image,
           role: user.role,
         };
       },
@@ -109,6 +127,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.sub = user.id;
+
         const suppliedRole = (user as { role?: string }).role;
 
         if (suppliedRole) {
@@ -141,7 +161,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
 
-    session({ session, token }) {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
 
