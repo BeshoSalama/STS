@@ -7,6 +7,11 @@ import { packageQuoteSchema } from "@/lib/validations/packageQuote";
 
 const CUSTOM_PACKAGE_BASE_FEE = 199;
 
+function parsePrice(value: string | null | undefined) {
+  const parsed = Number(String(value ?? "").replace(/[^\d]/g, ""));
+  return Number.isFinite(parsed) ? parsed : CUSTOM_PACKAGE_BASE_FEE;
+}
+
 export async function POST(req: Request) {
   const limited = await rateLimit(`package:${getClientIp(req)}`);
   if (!limited.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -19,8 +24,17 @@ export async function POST(req: Request) {
   if (!user?.id) return NextResponse.json({ error: "Login is required before requesting a package quote" }, { status: 401 });
   if (parsed.data.website) return NextResponse.json({ ok: true });
 
-  const addOns = await db.packageAddOn.findMany({ where: { id: { in: parsed.data.addOnIds } } });
-  const total = addOns.reduce((sum, addOn) => sum + addOn.price, CUSTOM_PACKAGE_BASE_FEE);
+  const requestedAddOns = parsed.data.addOns?.length
+    ? parsed.data.addOns
+    : parsed.data.addOnIds.map((id) => ({ id, quantity: 1 }));
+  const quantities = new Map(requestedAddOns.map((addOn) => [addOn.id, addOn.quantity]));
+  const [addOns, baseFeePlan] = await Promise.all([
+    db.packageAddOn.findMany({ where: { id: { in: requestedAddOns.map((addOn) => addOn.id) } } }),
+    db.packagePlan.findUnique({ where: { name: "Custom Package Base Fee" } }),
+  ]);
+  const rawTotal = addOns.reduce((sum, addOn) => sum + addOn.price * (quantities.get(addOn.id) ?? 1), parsePrice(baseFeePlan?.price));
+  const total = parsed.data.billing === "annual" ? Math.round(rawTotal * 0.85) : rawTotal;
+  const quoteItems = addOns.map((addOn) => ({ id: addOn.id, label: addOn.label, quantity: quantities.get(addOn.id) ?? 1, price: addOn.price }));
 
   const result = await db.$transaction(async (tx) => {
     const lead = await tx.lead.create({
@@ -30,7 +44,7 @@ export async function POST(req: Request) {
         email: user?.email ?? null,
         phone: "not-provided",
         userId: user?.id,
-        payload: JSON.stringify({ planName: parsed.data.planName, addOnIds: parsed.data.addOnIds, total }),
+        payload: JSON.stringify({ planName: parsed.data.planName, addOnIds: parsed.data.addOnIds, addOns: quoteItems, billing: parsed.data.billing, total }),
       },
     });
 
@@ -38,7 +52,7 @@ export async function POST(req: Request) {
       data: {
         leadId: lead.id,
         planName: parsed.data.planName,
-        addOnIds: JSON.stringify(addOns.map((addOn) => addOn.id)),
+        addOnIds: JSON.stringify(quoteItems),
         total,
       },
     });

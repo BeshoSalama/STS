@@ -64,36 +64,95 @@ export const packageAddOns: PackageAddOn[] = [
 ];
 
 export const customPackageBaseFee = 199;
+export const customPackageMeta = {
+  tagline: "Tailored to your unique goals",
+  description: "Pick exactly the services you need. Nothing you don't.",
+  cta: "Build My Package",
+  period: "/mo",
+};
 
-function parseFeatures(features: string) {
+export async function getPackagePlans() {
   try {
-    const parsed = JSON.parse(features);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+    const { db } = await import("@/lib/db");
+    const storedPlans = await db.packagePlan.findMany({
+      where: { name: { not: "Custom Package Base Fee" } },
+      orderBy: { order: "asc" },
+    });
+
+    if (storedPlans.length === 0) return packagePlans;
+
+    return storedPlans.map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      tagline: plan.tagline,
+      price: plan.price,
+      period: plan.period,
+      description: plan.description,
+      features: jsonToStringArray(plan.features),
+      cta: plan.cta,
+      featured: plan.featured,
+      order: plan.order,
+    }));
   } catch {
-    return [];
+    return packagePlans;
   }
 }
 
-export async function getPackagePlans() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.packagePlan.findMany({
-    where: { name: { not: "Custom Package Base Fee" } },
-    orderBy: { order: "asc" },
-  });
-  return rows.map((plan) => ({
-    name: plan.name,
-    tagline: plan.tagline,
-    price: plan.price,
-    period: plan.period,
-    description: plan.description,
-    features: parseFeatures(plan.features),
-    cta: plan.cta,
-    featured: plan.featured,
-  }));
+export async function getPackageAddOns() {
+  try {
+    const { db } = await import("@/lib/db");
+    const storedAddOns = await db.packageAddOn.findMany({ orderBy: { order: "asc" } });
+
+    return storedAddOns.length > 0 ? storedAddOns : packageAddOns;
+  } catch {
+    return packageAddOns;
+  }
 }
 
-export async function getPackageAddOns() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.packageAddOn.findMany({ orderBy: { order: "asc" } });
-  return rows.map(({ id, label, description, price }) => ({ id, label, description, price }));
+export async function getCustomPackageBaseFee() {
+  try {
+    const { db } = await import("@/lib/db");
+    const customPlan = await db.packagePlan.findFirst({
+      where: { name: "Custom Package Base Fee" },
+      select: { price: true },
+    });
+
+    const parsedPrice = Number(customPlan?.price.replace(/[^0-9]/g, ""));
+    return Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : customPackageBaseFee;
+  } catch {
+    return customPackageBaseFee;
+  }
+}
+
+export async function getCustomPackageMeta() {
+  try {
+    const { db } = await import("@/lib/db");
+    const customPlan = await db.packagePlan.findFirst({
+      where: { name: "Custom Package Base Fee" },
+      select: { tagline: true, description: true, cta: true, period: true },
+    });
+
+    if (!customPlan) return customPackageMeta;
+
+    return {
+      tagline: customPlan.tagline || customPackageMeta.tagline,
+      description: customPlan.description || customPackageMeta.description,
+      cta: customPlan.cta || customPackageMeta.cta,
+      period: customPlan.period || customPackageMeta.period,
+    };
+  } catch {
+    return customPackageMeta;
+  }
+}
+
+function jsonToStringArray(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
 }

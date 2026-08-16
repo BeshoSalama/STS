@@ -1,12 +1,15 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { requireStaffSession } from "@/lib/rbac";
 
 async function updateLeadStatus(formData: FormData) {
   "use server";
+  if (!(await requireStaffSession())) throw new Error("Unauthorized");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "NEW");
   await db.lead.update({ where: { id }, data: { status } });
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/briefs");
 }
 
 export default async function AdminLeadsPage() {

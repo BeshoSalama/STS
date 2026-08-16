@@ -3,19 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n FRONTEND,BACKEND -c cyan,magenta \"npm run frontend\" \"npm run backend\"",
-    "frontend": "cd frontend && next dev -p 3000",
-    "backend": "dotnet watch --project backend/src/STS.Api/STS.Api.csproj run --urls http://localhost:4000",
+    "dev": "concurrently -n FRONTEND,BACKEND,OPEN_FRONTEND,OPEN_BACKEND -c cyan,magenta,gray,gray \"npm run frontend:serve\" \"npm run backend:serve\" \"npm run open:frontend\" \"npm run open:backend\"",
+    "frontend": "concurrently -n FRONTEND,OPEN -c cyan,gray \"npm run frontend:serve\" \"npm run open:frontend\"",
+    "frontend:serve": "cd frontend && next dev -p 3000",
+    "backend": "concurrently -n BACKEND,OPEN -c magenta,gray \"npm run backend:serve\" \"npm run open:backend\"",
+    "backend:serve": "dotnet watch --project backend/src/STS.Api/STS.Api.csproj run --urls http://localhost:4000",
     "backend:start": "dotnet run --project backend/src/STS.Api/STS.Api.csproj --urls http://localhost:4000",
+    "open:frontend": "node scripts/open-when-ready.mjs http://localhost:3000",
+    "open:backend": "node scripts/open-when-ready.mjs http://localhost:4000",
     "build": "cd frontend && next build",
     "start": "cd frontend && next start -p 3000",
     "lint": "cd frontend && next lint",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "npm run db:migrate && npm run db:seed",
-    "db:studio": "prisma studio",
-    "postinstall": "prisma generate",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
@@ -36,9 +36,6 @@
     "react-dom": "^18.3.1",
     "resend": "^6.18.1",
     "zod": "^4.4.3"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

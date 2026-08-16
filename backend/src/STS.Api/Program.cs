@@ -19,7 +19,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000", "https://localhost:3000")
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "https://sts-m.com",
+                "https://www.sts-m.com"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });

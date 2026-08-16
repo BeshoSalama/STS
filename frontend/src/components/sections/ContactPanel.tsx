@@ -192,7 +192,7 @@ export function ContactPanel() {
     <section className="contact-reference-section pb-28">
       <div className="contact-reference-grid container">
         <div className="contact-reference-form">
-          <h1>Contacts</h1>
+          <h1>Free Consultation</h1>
           <p className="contact-reference-intro">
             Let&apos;s build a brand that grows, expands, and stands out from the rest. Send us a message and our
             team will contact you during our working{" "}

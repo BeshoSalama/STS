@@ -15,7 +15,5 @@ export const team: TeamMember[] = [
 ];
 
 export async function getTeam() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.teamMember.findMany({ orderBy: { order: "asc" } });
-  return rows.map(({ name, role }) => ({ name, role }));
+  return team;
 }

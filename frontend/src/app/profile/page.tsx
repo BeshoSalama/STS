@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { CalendarDays, ClipboardList, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarDays, ClipboardList, CreditCard, Mail, Phone, ShieldAlert, ShieldCheck, UserRound } from "lucide-react";
+import { DeleteAccountButton } from "@/components/auth/DeleteAccountButton";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/rbac";
 
@@ -23,6 +25,49 @@ async function updateProfile(formData: FormData) {
   revalidatePath("/portal");
 }
 
+async function deleteAccount(formData: FormData) {
+  "use server";
+  const session = await requireSession();
+  if (!session) redirect("/login");
+
+  const confirmation = String(formData.get("confirmation") ?? "").trim();
+  if (confirmation !== "CONFIRM_ACCOUNT_DELETE") {
+    redirect("/profile");
+  }
+
+  const userId = session.user.id;
+
+  await db.$transaction(async (tx) => {
+    const leads = await tx.lead.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const leadIds = leads.map((lead) => lead.id);
+
+    await tx.brief.deleteMany({
+      where: {
+        OR: [{ userId }, ...(leadIds.length > 0 ? [{ leadId: { in: leadIds } }] : [])],
+      },
+    });
+
+    if (leadIds.length > 0) {
+      await tx.packageQuote.deleteMany({ where: { leadId: { in: leadIds } } });
+    }
+
+    await tx.lead.deleteMany({ where: { userId } });
+    await tx.booking.deleteMany({ where: { userId } });
+    await tx.campaign.deleteMany({ where: { userId } });
+    await tx.userSubscription.deleteMany({ where: { userId } });
+    await tx.paymentTransaction.updateMany({ where: { reviewedBy: userId }, data: { reviewedBy: null } });
+    await tx.paymentTransaction.deleteMany({ where: { userId } });
+    await tx.session.deleteMany({ where: { userId } });
+    await tx.account.deleteMany({ where: { userId } });
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  await signOut({ redirectTo: "/" });
+}
+
 function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -39,17 +84,35 @@ export default async function ProfilePage() {
   const session = await requireSession();
   if (!session) redirect("/login");
 
-  const [user, leadCount, briefCount, bookingCount, quoteCount] = await Promise.all([
+  const [user, leadCount, briefCount, bookingCount, quoteCount, paymentCount, payments, subscription] = await Promise.all([
     db.user.findUnique({ where: { id: session.user.id } }),
     db.lead.count({ where: { userId: session.user.id } }),
     db.brief.count({ where: { userId: session.user.id } }),
     db.booking.count({ where: { userId: session.user.id } }),
     db.packageQuote.count({ where: { lead: { userId: session.user.id } } }),
+    db.paymentTransaction.count({ where: { userId: session.user.id } }),
+    db.paymentTransaction.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        planNameSnapshot: true,
+        amount: true,
+        currency: true,
+        paymentMethod: true,
+        status: true,
+        adminNotes: true,
+        createdAt: true,
+        reviewedAt: true,
+      },
+    }),
+    db.userSubscription.findUnique({ where: { userId: session.user.id } }),
   ]);
 
   if (!user) redirect("/login");
 
-  const dashboardHref = user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/portal";
+  const adminHref = user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : null;
   const initials = (user.name ?? user.email)
     .split(" ")
     .map((part) => part[0])
@@ -66,9 +129,11 @@ export default async function ProfilePage() {
             <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">Your STS Profile</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href={dashboardHref} className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
-              {user.role === "CLIENT" ? "Portal" : "Admin"}
-            </Link>
+            {adminHref && (
+              <Link href={adminHref} className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
+                Admin
+              </Link>
+            )}
             <LogoutButton />
           </div>
         </div>
@@ -105,6 +170,10 @@ export default async function ProfilePage() {
                 <p className="font-display text-3xl font-bold">{quoteCount}</p>
                 <p className="text-xs text-white/45">Quotes</p>
               </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <p className="font-display text-3xl font-bold">{paymentCount}</p>
+                <p className="text-xs text-white/45">Payments</p>
+              </div>
             </div>
           </aside>
 
@@ -118,6 +187,42 @@ export default async function ProfilePage() {
                 <DetailItem icon={<ShieldCheck size={18} />} label="Role" value={user.role} />
                 <DetailItem icon={<CalendarDays size={18} />} label="Joined" value={user.createdAt.toLocaleDateString()} />
                 <DetailItem icon={<ClipboardList size={18} />} label="Updated" value={user.updatedAt.toLocaleDateString()} />
+                <DetailItem icon={<CreditCard size={18} />} label="Current Plan" value={subscription?.planNameSnapshot ?? "Not active"} />
+                <DetailItem icon={<ShieldCheck size={18} />} label="Plan Status" value={subscription?.status ?? "No subscription"} />
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
+              <h2 className="font-display text-2xl font-bold">Payments</h2>
+              <div className="mt-5 grid gap-3">
+                {payments.length === 0 ? (
+                  <p className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-white/58">No payment submissions yet.</p>
+                ) : (
+                  payments.map((payment) => (
+                    <div key={payment.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-display text-xl font-bold">{payment.planNameSnapshot}</p>
+                          <p className="mt-1 text-sm text-white/58">
+                            {Number(payment.amount.toString()).toLocaleString()} {payment.currency} via {payment.paymentMethod === "VODAFONE_CASH" ? "Vodafone Cash" : "InstaPay"}
+                          </p>
+                        </div>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${paymentStatusClass(payment.status)}`}>
+                          {customerPaymentStatus(payment.status)}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-xs text-white/42">Submitted {payment.createdAt.toLocaleString()}</p>
+                      {payment.status === "APPROVED" && (
+                        <p className="mt-3 text-sm font-bold text-emerald-200">تم تأكيد الدفع وتفعيل خطتك بنجاح.</p>
+                      )}
+                      {payment.status === "REJECTED" && payment.adminNotes && (
+                        <p className="mt-3 rounded-lg border border-red-300/20 bg-red-500/10 p-3 text-sm font-bold text-red-100">
+                          Reason: {payment.adminNotes}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
@@ -145,9 +250,39 @@ export default async function ProfilePage() {
                 Save Changes
               </button>
             </form>
+
+            <section className="rounded-lg border border-red-300/20 bg-red-500/[0.06] p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-xl">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-red-500/15 text-red-100">
+                    <ShieldAlert size={20} />
+                  </div>
+                  <h2 className="font-display text-2xl font-bold">Delete Account</h2>
+                  <p className="mt-2 text-sm leading-6 text-white/58">
+                    This permanently removes your account, login sessions, campaign data, bookings, leads, briefs, and quotes.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <DeleteAccountButton action={deleteAccount} />
+              </div>
+            </section>
           </div>
         </div>
       </section>
     </main>
   );
+}
+
+function customerPaymentStatus(status: string) {
+  if (status === "APPROVED") return "تم تأكيد الدفع";
+  if (status === "REJECTED") return "تم رفض التحويل";
+  return "قيد المراجعة";
+}
+
+function paymentStatusClass(status: string) {
+  if (status === "APPROVED") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+  if (status === "REJECTED") return "border-red-300/25 bg-red-500/10 text-red-100";
+  return "border-amber-300/25 bg-amber-400/10 text-amber-100";
 }

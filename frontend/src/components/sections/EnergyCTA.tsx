@@ -74,7 +74,7 @@ export function EnergyCTA() {
     <div ref={rootRef} className="energy-cta">
       <span className="energy-cta__aura" aria-hidden="true" />
       <Button
-        href="/contact"
+        href="/contact-us"
         className="energy-cta__button min-w-[240px] justify-between px-8 py-4 text-base sm:min-w-[280px] sm:px-9 sm:py-5 sm:text-lg"
       >
         <span className="energy-cta__inner-network" aria-hidden="true">

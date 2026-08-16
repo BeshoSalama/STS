@@ -144,7 +144,8 @@ function RoiPanel({ roi }: { roi: number }) {
 }
 
 export function ClientsHero({ clientLogoImages, valueProps, projects, heroStats, clientStats }: ClientsHeroProps) {
-  const projectHrefByImage = new Map(projects.map((project) => [project.image, `/projects/${getProjectSlug(project.name)}`]));
+  const projectHrefByImage = new Map(projects.map((project) => [project.image, `/projects/${project.slug || getProjectSlug(project.name)}`]));
+  const projectHrefBySlug = new Map(projects.map((project) => [getProjectSlug(project.name), `/projects/${project.slug || getProjectSlug(project.name)}`]));
   const stageRef = useRef<HTMLDivElement | null>(null);
   const arrowSvgRef = useRef<SVGSVGElement | null>(null);
   const arrowPathRef = useRef<SVGPathElement | null>(null);
@@ -168,8 +169,8 @@ export function ClientsHero({ clientLogoImages, valueProps, projects, heroStats,
     }
   }
 
-  function getLogoProjectHref(file: string) {
-    return projectHrefByImage.get(file) ?? "/projects";
+  function getLogoProjectHref(file: string, name: string) {
+    return projectHrefByImage.get(file) ?? projectHrefBySlug.get(getProjectSlug(name)) ?? "/projects";
   }
 
   useEffect(() => {
@@ -345,7 +346,7 @@ export function ClientsHero({ clientLogoImages, valueProps, projects, heroStats,
             {clientLogoImages.map((logo, index) => (
               <Link
                 key={logo.file}
-                href={getLogoProjectHref(logo.file)}
+                href={getLogoProjectHref(logo.file, logo.name)}
                 ref={(element) => {
                   cardRefs.current[index] = element;
                 }}
@@ -377,7 +378,7 @@ export function ClientsHero({ clientLogoImages, valueProps, projects, heroStats,
           {clientLogoImages.map((logo) => (
             <Link
               key={logo.file}
-              href={getLogoProjectHref(logo.file)}
+              href={getLogoProjectHref(logo.file, logo.name)}
               className={styles.mobileLogoCard}
               aria-label={`Open ${logo.name} case study`}
             >

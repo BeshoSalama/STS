@@ -37,6 +37,66 @@ export const resultCards: ResultCard[] = [
     image: "/home/result-real-estate.png",
     imageAlt: "Luxury real estate marketing visual with growth light trails",
   },
+  {
+    stat: "92%",
+    title: "More Bookings",
+    description:
+      "We help clinics and healthcare brands turn digital attention into trusted appointments and stronger patient pipelines.",
+    tone: "light",
+    industrySlug: "medical",
+    image: "/home/result-cosmetics.png",
+    imageAlt: "Premium healthcare and clinic growth visual",
+  },
+  {
+    stat: "64%",
+    title: "Order Growth",
+    description:
+      "We build restaurant campaigns that bring more orders, stronger local reach, and repeat customers across delivery channels.",
+    tone: "dark",
+    industrySlug: "restaurants",
+    image: "/home/result-ecommerce.png",
+    imageAlt: "Premium restaurant ordering campaign visual",
+  },
+  {
+    stat: "48%",
+    title: "Lead Quality",
+    description:
+      "We create education campaigns that attract better-fit students, parents, and qualified inquiries for growth-focused teams.",
+    tone: "dark",
+    industrySlug: "education",
+    image: "/home/result-real-estate.png",
+    imageAlt: "Premium education marketing growth visual",
+  },
+  {
+    stat: "55%",
+    title: "More Leads",
+    description:
+      "We launch automotive campaigns for dealerships, showrooms, and service centers with smarter targeting and faster follow-up.",
+    tone: "dark",
+    industrySlug: "automotive",
+    image: "/home/result-real-estate.png",
+    imageAlt: "Premium automotive marketing campaign visual",
+  },
+  {
+    stat: "73%",
+    title: "Pipeline Growth",
+    description:
+      "We help technology brands explain complex offers clearly and convert the right prospects into qualified sales conversations.",
+    tone: "light",
+    industrySlug: "technology",
+    image: "/home/result-cosmetics.png",
+    imageAlt: "Premium technology brand growth visual",
+  },
+  {
+    stat: "41%",
+    title: "Member Growth",
+    description:
+      "We grow gyms, studios, and wellness brands with campaigns built around intent, community, and consistent acquisition.",
+    tone: "dark",
+    industrySlug: "fitness",
+    image: "/home/result-ecommerce.png",
+    imageAlt: "Premium fitness and wellness growth campaign visual",
+  },
 ];
 
 export const clientStats = {
@@ -47,31 +107,17 @@ export const clientStats = {
 export const platforms = ["Meta", "Google Ads", "TikTok", "Shopify", "YouTube"];
 
 export async function getHeroStats() {
-  const { db } = await import("@/lib/db");
-  return (await db.heroStats.findUnique({ where: { id: 1 } })) ?? heroStats;
+  return heroStats;
 }
 
 export async function getClientStats() {
-  const { db } = await import("@/lib/db");
-  return (await db.clientStats.findUnique({ where: { id: 1 } })) ?? clientStats;
+  return clientStats;
 }
 
 export async function getResultCards() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.resultCard.findMany({ orderBy: { order: "asc" } });
-  return rows.map((card) => ({
-    stat: card.stat,
-    title: card.title,
-    description: card.description,
-    tone: card.tone as ResultCard["tone"],
-    industrySlug: card.industrySlug,
-    image: card.image,
-    imageAlt: card.imageAlt,
-  }));
+  return resultCards;
 }
 
 export async function getPlatforms() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.platform.findMany({ orderBy: { order: "asc" } });
-  return rows.map((platform) => platform.name);
+  return platforms;
 }

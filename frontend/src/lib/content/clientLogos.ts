@@ -32,7 +32,5 @@ export const clientLogoImages: ClientLogoImage[] = [
 ];
 
 export async function getClientLogoImages() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.clientLogo.findMany({ orderBy: { order: "asc" } });
-  return rows.map(({ name, category, file, objectPosition }) => ({ name, category, file, objectPosition }));
+  return clientLogoImages;
 }

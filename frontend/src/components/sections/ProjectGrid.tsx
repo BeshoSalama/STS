@@ -7,6 +7,10 @@ import { useScrollReveal } from "@/lib/animations";
 import { getProjectSlug } from "@/lib/content/projects";
 import type { ProjectItem } from "@/types/content";
 
+function getProjectHref(project: ProjectItem) {
+  return `/projects/${project.slug || getProjectSlug(project.name)}`;
+}
+
 export function ProjectGrid({ projects }: { projects: ProjectItem[] }) {
   const ref = useScrollReveal<HTMLDivElement>({ selector: "[data-reveal]", stagger: 0.14 });
 
@@ -16,7 +20,7 @@ export function ProjectGrid({ projects }: { projects: ProjectItem[] }) {
         {projects.map((project) => (
           <Link
             key={project.name}
-            href={`/projects/${getProjectSlug(project.name)}`}
+            href={getProjectHref(project)}
             data-reveal
             className="service-showcase-card service-motion group block"
             aria-label={`Open ${project.name} case study`}

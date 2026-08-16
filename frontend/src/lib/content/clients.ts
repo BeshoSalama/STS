@@ -38,11 +38,5 @@ export const valueProps: ValueProp[] = [
 ];
 
 export async function getValueProps() {
-  const { db } = await import("@/lib/db");
-  const rows = await db.valueProp.findMany({ orderBy: { order: "asc" } });
-  return rows.map((item) => ({
-    icon: item.icon as ValueProp["icon"],
-    title: item.title,
-    description: item.description,
-  }));
+  return valueProps;
 }

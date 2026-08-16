@@ -6,7 +6,6 @@ import { industries } from "../frontend/src/lib/content/industries";
 import { siteConfig } from "../frontend/src/lib/content/nav";
 import { customPackageBaseFee, packageAddOns, packagePlans } from "../frontend/src/lib/content/packages";
 import { getProjectSlug, projects } from "../frontend/src/lib/content/projects";
-import { services } from "../frontend/src/lib/content/services";
 import { clientStats, heroStats, platforms, resultCards } from "../frontend/src/lib/content/stats";
 import { team } from "../frontend/src/lib/content/team";
 
@@ -54,14 +53,6 @@ async function main() {
       where: { id: `team-${order}` },
       update: { ...member, order },
       create: { id: `team-${order}`, ...member, order },
-    });
-  }
-
-  for (const [order, service] of services.entries()) {
-    await db.serviceItem.upsert({
-      where: { id: `service-${order}` },
-      update: { ...service, order },
-      create: { id: `service-${order}`, ...service, order },
     });
   }
 
@@ -125,6 +116,35 @@ async function main() {
     });
   }
 
+  await db.manualPaymentSettings.upsert({
+    where: { id: 1 },
+    update: {
+      vodafoneCashEnabled: true,
+      vodafoneCashNumber: "01039839414",
+      vodafoneCashSecondNumber: "01021804116",
+      vodafoneCashInstructions:
+        "Transfer the exact plan amount to one of the Vodafone Cash numbers, keep a screenshot, then submit the transfer details.",
+      instapayEnabled: true,
+      instapayAddress: "01021804116",
+      instapayInstructions:
+        "Transfer the exact plan amount to the InstaPay address, keep a screenshot, then submit the transfer details.",
+    },
+    create: {
+      id: 1,
+      vodafoneCashEnabled: true,
+      vodafoneCashNumber: "01039839414",
+      vodafoneCashSecondNumber: "01021804116",
+      vodafoneCashAccountName: "",
+      vodafoneCashInstructions:
+        "Transfer the exact plan amount to one of the Vodafone Cash numbers, keep a screenshot, then submit the transfer details.",
+      instapayEnabled: true,
+      instapayAddress: "01021804116",
+      instapayAccountName: "",
+      instapayInstructions:
+        "Transfer the exact plan amount to the InstaPay address, keep a screenshot, then submit the transfer details.",
+    },
+  });
+
   for (const [order, logo] of clientLogoImages.entries()) {
     await db.clientLogo.upsert({
       where: { id: `logo-${order}` },
@@ -176,11 +196,12 @@ async function main() {
   const adminPassword = await bcrypt.hash("Admin123456!", 12);
   await db.user.upsert({
     where: { email: "admin@sts.local" },
-    update: { role: "ADMIN" },
+    update: { passwordHash: adminPassword, role: "ADMIN", emailVerified: new Date() },
     create: {
       name: "STS Admin",
       email: "admin@sts.local",
       passwordHash: adminPassword,
+      emailVerified: new Date(),
       role: "ADMIN",
     },
   });
@@ -188,11 +209,12 @@ async function main() {
   const staffPassword = await bcrypt.hash("Staff123456!", 12);
   await db.user.upsert({
     where: { email: "staff@sts.local" },
-    update: { role: "STAFF" },
+    update: { passwordHash: staffPassword, role: "STAFF", emailVerified: new Date() },
     create: {
       name: "STS Staff",
       email: "staff@sts.local",
       passwordHash: staffPassword,
+      emailVerified: new Date(),
       role: "STAFF",
     },
   });

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { requireClientSession } from "@/lib/rbac";
@@ -17,12 +16,6 @@ export default async function PortalLayout({ children }: { children: React.React
             <h1 className="mt-2 font-display text-4xl font-extrabold">Welcome, {session.user.name}</h1>
           </div>
           <nav className="flex gap-2">
-            <Link href="/portal" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
-              Dashboard
-            </Link>
-            <Link href="/profile" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
-              Profile
-            </Link>
             <LogoutButton />
           </nav>
         </div>

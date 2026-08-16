@@ -1,15 +1,14 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: mcr.microsoft.com/mssql/server:2022-latest
     restart: unless-stopped
+
     environment:
-      POSTGRES_USER: sts
-      POSTGRES_PASSWORD: sts
-      POSTGRES_DB: sts_agency
-    ports:
-      - "5432:5432"
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+
     volumes:
-      - sts_pgdata:/var/lib/postgresql/data
+      - sts_sqldata:/var/opt/mssql
 
 volumes:
-  sts_pgdata:
+  sts_sqldata:

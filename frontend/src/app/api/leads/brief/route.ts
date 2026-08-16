@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendLeadNotification } from "@/lib/email";
+import { notifyRoles } from "@/lib/notifications";
 import { getClientIp, rateLimit } from "@/lib/rateLimit";
 import { briefSchema } from "@/lib/validations/brief";
 
@@ -73,6 +74,12 @@ export async function POST(req: Request) {
   });
 
   await sendLeadNotification("New client brief", `<p>${data.clientName} submitted a brief for ${data.brandName}.</p>`);
+  await notifyRoles(["ADMIN", "STAFF"], {
+    type: "BRIEF_SUBMITTED",
+    title: "New client brief",
+    body: `${data.clientName} submitted a brief for ${data.brandName}.`,
+    href: `/admin/briefs?q=${result.brief.id}`,
+  });
 
   return NextResponse.json(result, { status: 201 });
 }

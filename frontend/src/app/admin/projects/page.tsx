@@ -15,6 +15,9 @@ async function createProject(formData: FormData) {
       category: String(formData.get("category") ?? ""),
       image: String(formData.get("image") ?? ""),
       imageAlt: String(formData.get("imageAlt") ?? name),
+      details: String(formData.get("details") ?? ""),
+      videoUrl: String(formData.get("videoUrl") ?? ""),
+      content: String(formData.get("content") ?? ""),
       order: Number(formData.get("order") ?? 0),
       published: true,
     },
@@ -36,6 +39,9 @@ async function updateProject(formData: FormData) {
       category: String(formData.get("category") ?? ""),
       image: String(formData.get("image") ?? ""),
       imageAlt: String(formData.get("imageAlt") ?? ""),
+      details: String(formData.get("details") ?? ""),
+      videoUrl: String(formData.get("videoUrl") ?? ""),
+      content: String(formData.get("content") ?? ""),
       order: Number(formData.get("order") ?? 0),
       published,
     },
@@ -52,7 +58,8 @@ async function deleteProject(formData: FormData) {
   revalidatePath("/projects");
 }
 
-const inputClass = "min-h-10 rounded-lg border border-white/10 bg-black/20 px-3 text-sm text-white outline-none";
+const inputClass = "min-h-10 rounded-lg border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/35";
+const textAreaClass = "min-h-24 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35";
 
 export default async function AdminProjectsPage() {
   if (!(await requireAdminSession())) redirect("/admin/leads");
@@ -67,6 +74,9 @@ export default async function AdminProjectsPage() {
         <input name="category" required placeholder="Category" className={inputClass} />
         <input name="image" required placeholder="/clients/logo.png" className={inputClass} />
         <input name="imageAlt" placeholder="Image alt" className={inputClass} />
+        <input name="videoUrl" placeholder="/videos/brand.mp4 or YouTube URL" className={inputClass} />
+        <textarea name="details" placeholder="Brand/project intro text" className={`${textAreaClass} md:col-span-3`} />
+        <textarea name="content" placeholder="Long brand content, notes, campaign story, media references" className={`${textAreaClass} md:col-span-3`} />
         <input name="order" type="number" defaultValue="0" className={inputClass} />
         <button className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold md:col-span-3">Create</button>
       </form>
@@ -79,6 +89,9 @@ export default async function AdminProjectsPage() {
           <input name="category" defaultValue={project.category} className={inputClass} />
           <input name="image" defaultValue={project.image} className={inputClass} />
           <input name="imageAlt" defaultValue={project.imageAlt} className={inputClass} />
+          <input name="videoUrl" defaultValue={project.videoUrl ?? ""} className={inputClass} />
+          <textarea name="details" defaultValue={project.details ?? ""} className={`${textAreaClass} md:col-span-3`} />
+          <textarea name="content" defaultValue={project.content ?? ""} className={`${textAreaClass} md:col-span-3`} />
           <input name="order" type="number" defaultValue={project.order} className={inputClass} />
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input name="published" type="checkbox" defaultChecked={project.published} />

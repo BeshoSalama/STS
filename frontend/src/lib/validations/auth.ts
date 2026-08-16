@@ -16,3 +16,8 @@ export const loginSchema = z.object({
   email: z.string().trim().email("Valid email is required").toLowerCase(),
   password: z.string().min(1, "Password is required"),
 });
+
+export const verifyEmailSchema = z.object({
+  email: z.string().trim().email("Valid email is required").toLowerCase(),
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});

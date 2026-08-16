@@ -6,26 +6,16 @@ import { Logo } from "./Logo";
 
 const footerColumns = [
   {
-    title: "Services",
-    links: [
-      { label: "Branding", href: "/services" },
-      { label: "Marketing", href: "/services" },
-      { label: "Printing", href: "/services" },
-      { label: "Development", href: "/services" },
-      { label: "Strategy", href: "/services" },
-    ],
-  },
-  {
     title: "Company",
     links: navLinks.filter((link) => !link.variant),
   },
   {
     title: "Support",
     links: [
-      { label: "Help Center", href: "/contact" },
-      { label: "Terms & Conditions", href: "/contact" },
-      { label: "Privacy Policy", href: "/contact" },
-      { label: "Contact Us", href: "/contact" },
+      { label: "Help Center", href: "/contact-us" },
+      { label: "Terms & Conditions", href: "/contact-us" },
+      { label: "Privacy Policy", href: "/contact-us" },
+      { label: "Free Consultation", href: "/contact-us" },
     ],
   },
 ];
@@ -80,7 +70,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="grid gap-9 sm:grid-cols-3">
+        <div className="grid gap-9 sm:grid-cols-2">
           {footerColumns.map((column) => (
             <div key={column.title}>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300/90">
@@ -107,7 +97,7 @@ export function Footer() {
           <span className="hidden h-1 w-1 rounded-full bg-violet-300/80 sm:block" />
           <span>{siteConfig.location}</span>
         </div>
-        <Link href="/contact" data-ripple className="footer-project-link">
+        <Link href="/contact-us" data-ripple className="footer-project-link">
           Start a project
           <ArrowUpRight size={14} />
         </Link>

@@ -42,8 +42,19 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             Id = NewId(),
             Type = "CONSULTATION",
             Name = booking.Name,
+            Email = TrimOrNull(request.Email),
             Phone = booking.Phone,
-            Payload = JsonSerializer.Serialize(new { consultationDate = request.ConsultationDate, bookingId = booking.Id }, JsonOptions),
+            Payload = JsonSerializer.Serialize(
+                new
+                {
+                    consultationDate = request.ConsultationDate,
+                    bookingId = booking.Id,
+                    request.Company,
+                    request.Activity,
+                    request.Source,
+                    request.Goal
+                },
+                JsonOptions),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -140,11 +151,23 @@ public sealed class LeadService(StsDbContext db) : ILeadService
     {
         if (!string.IsNullOrWhiteSpace(request.Website)) return ApiResult<object>.Ok(new { ok = true });
 
-        var requestedAddOnIds = request.AddOnIds ?? [];
+        var requestedAddOns = request.AddOns is { Count: > 0 }
+            ? request.AddOns
+            : (request.AddOnIds ?? []).Select(id => new PackageQuoteAddOnRequest(id, 1)).ToArray();
+        var requestedAddOnIds = requestedAddOns.Select(x => x.Id).Distinct().ToArray();
+        var quantities = requestedAddOns
+            .GroupBy(x => x.Id)
+            .ToDictionary(x => x.Key, x => x.Sum(item => Math.Clamp(item.Quantity, 1, 99)));
         var addOns = await db.PackageAddOns.Where(x => requestedAddOnIds.Contains(x.Id)).ToListAsync(cancellationToken);
-        var total = addOns.Sum(x => x.Price) + CustomPackageBaseFee;
+        var rawTotal = addOns.Sum(x => x.Price * quantities.GetValueOrDefault(x.Id, 1)) + CustomPackageBaseFee;
+        var total = string.Equals(request.Billing, "annual", StringComparison.OrdinalIgnoreCase)
+            ? (int)Math.Round(rawTotal * 0.85)
+            : rawTotal;
         var now = DateTime.UtcNow;
-        var selectedIds = addOns.Select(x => x.Id).ToArray();
+        var selectedItems = addOns
+            .Select(x => new { x.Id, x.Label, Quantity = quantities.GetValueOrDefault(x.Id, 1), x.Price })
+            .ToArray();
+        var selectedIds = selectedItems.Select(x => x.Id).ToArray();
 
         var lead = new Lead
         {
@@ -152,7 +175,7 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             Type = "PACKAGE_QUOTE",
             Name = "Package Builder",
             Phone = "not-provided",
-            Payload = JsonSerializer.Serialize(new { request.PlanName, addOnIds = selectedIds, total }, JsonOptions),
+            Payload = JsonSerializer.Serialize(new { request.PlanName, addOns = selectedItems, request.Billing, total }, JsonOptions),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -161,7 +184,7 @@ public sealed class LeadService(StsDbContext db) : ILeadService
             Id = NewId(),
             LeadId = lead.Id,
             PlanName = TrimOrNull(request.PlanName),
-            AddOnIds = JsonSerializer.Serialize(selectedIds, JsonOptions),
+            AddOnIds = JsonSerializer.Serialize(selectedItems, JsonOptions),
             Total = total,
             CreatedAt = now
         };

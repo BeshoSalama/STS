@@ -4,8 +4,13 @@ namespace STS.Application.Leads;
 
 public sealed record ContactLeadRequest(
     string? Name,
+    string? Email,
     string? Phone,
     string? ConsultationDate,
+    string? Company,
+    string? Activity,
+    string? Source,
+    string? Goal,
     string? Website);
 
 public sealed record BriefLeadRequest
@@ -45,7 +50,13 @@ public sealed record BriefLeadRequest
     public string? UserId { get; init; }
 }
 
-public sealed record PackageQuoteRequest(string? PlanName, IReadOnlyList<string> AddOnIds, string? Website);
+public sealed record PackageQuoteAddOnRequest(string Id, int Quantity);
+public sealed record PackageQuoteRequest(
+    string? PlanName,
+    IReadOnlyList<string> AddOnIds,
+    IReadOnlyList<PackageQuoteAddOnRequest>? AddOns,
+    string? Billing,
+    string? Website);
 public sealed record LeadResponse(string Id, string Type, string Status, string Name, string? Email, string Phone, DateTime CreatedAt);
 public sealed record ContactLeadResponse(LeadResponse Lead, string BookingId);
 public sealed record BriefLeadResponse(LeadResponse Lead, string BriefId);

@@ -28,6 +28,7 @@ public sealed class AuthService(StsDbContext db) : IAuthService
             Id = NewId(),
             Name = name,
             Email = email!,
+            EmailVerified = null,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, 12),
             Role = UserRoles.Client,
             CreatedAt = now,
@@ -49,6 +50,11 @@ public sealed class AuthService(StsDbContext db) : IAuthService
         if (user?.PasswordHash is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return ApiResult<AuthResponse>.Fail("Invalid email or password", 401);
+        }
+
+        if (user.EmailVerified is null)
+        {
+            return ApiResult<AuthResponse>.Fail("Please verify your email before logging in", 403);
         }
 
         return ApiResult<AuthResponse>.Ok(new AuthResponse(ToUserResponse(user)));

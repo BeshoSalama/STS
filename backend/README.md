@@ -25,7 +25,7 @@ http://localhost:4000
 Database:
 
 ```text
-SQL Server localhost / STSAgency
+SQL Server localhost,1433 / STSAgency
 ```
 
 Health check:

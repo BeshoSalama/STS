@@ -3,12 +3,11 @@ import { NavLink } from "@/types/content";
 export const navLinks: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
-  { label: "Services", href: "/services" },
   { label: "Pricing", href: "/pricing" },
   { label: "Projects", href: "/projects" },
   { label: "Brief", href: "/brief" },
   { label: "Our Clients", href: "/clients" },
-  { label: "Free Consultation", href: "/contact", variant: "pill" },
+  { label: "Free Consultation", href: "/contact-us" },
 ];
 
 export const siteConfig = {

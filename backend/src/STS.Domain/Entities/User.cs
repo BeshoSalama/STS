@@ -5,6 +5,7 @@ public sealed class User
     public string Id { get; set; } = default!;
     public string? Name { get; set; }
     public string Email { get; set; } = default!;
+    public DateTime? EmailVerified { get; set; }
     public string? PasswordHash { get; set; }
     public string Role { get; set; } = "CLIENT";
     public string? Phone { get; set; }

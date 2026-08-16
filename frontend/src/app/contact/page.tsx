@@ -1,9 +1,5 @@
-import { ContactPanel } from "@/components/sections/ContactPanel";
+import { redirect } from "next/navigation";
 
 export default function ContactPage() {
-  return (
-    <div className="relative overflow-hidden pt-40 sm:pt-48">
-      <ContactPanel />
-    </div>
-  );
+  redirect("/contact-us");
 }

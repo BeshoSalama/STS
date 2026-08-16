@@ -2,10 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { ArrowRight, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { apiFetch } from "@/lib/apiClient";
 import { cn } from "@/lib/cn";
 
 type AuthMode = "login" | "register";
@@ -70,12 +69,39 @@ function Field({
   );
 }
 
+function GoogleMark() {
+  return (
+    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[18px] w-[18px]">
+        <path
+          fill="#4285F4"
+          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        />
+        <path
+          fill="#34A853"
+          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"
+        />
+        <path
+          fill="#EA4335"
+          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"
+        />
+      </svg>
+    </span>
+  );
+}
+
 export function AuthPanel({ mode }: AuthPanelProps) {
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const data = copy[mode];
   const isRegister = mode === "register";
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
-  const [status, setStatus] = useState<"idle" | "loading">("idle");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "google">("idle");
   const [message, setMessage] = useState("");
 
   function updateField(field: keyof typeof form, value: string) {
@@ -89,35 +115,116 @@ export function AuthPanel({ mode }: AuthPanelProps) {
 
     try {
       if (isRegister) {
-        const response = await apiFetch("/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+        if (awaitingVerification) {
+          const response = await fetch("/api/auth/verify-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: form.email, code: verificationCode }),
+          });
+
+          if (!response.ok) {
+            const data = (await response.json().catch(() => null)) as { error?: string } | null;
+            throw new Error(typeof data?.error === "string" ? data.error : "Invalid verification code");
+          }
+        } else {
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(form),
+          });
+
+          const result = (await response.json().catch(() => null)) as {
+            error?: string;
+            message?: string;
+            devCode?: string;
+          } | null;
+
+          if (!response.ok) {
+            throw new Error(typeof result?.error === "string" ? result.error : "Could not create account");
+          }
+
+          setAwaitingVerification(true);
+          setMessage(
+            result?.devCode
+              ? `Email sending is not configured. Development code: ${result.devCode}`
+              : result?.message ?? "Verification code sent. Please check your email."
+          );
+          return;
+        }
+      } else {
+        const result = await signIn("credentials", {
+          email: form.email,
+          password: form.password,
+          redirect: false,
         });
 
-        if (!response.ok) {
-          const data = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(typeof data?.error === "string" ? data.error : "Could not create account");
+        if (result?.error) {
+          throw new Error("Invalid email or password");
         }
       }
 
-      const result = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
-        redirect: false,
-      });
+      if (isRegister) {
+        const result = await signIn("credentials", {
+          email: form.email,
+          password: form.password,
+          redirect: false,
+        });
 
-      if (result?.error) {
-        throw new Error("Invalid email or password");
+        if (result?.error) {
+          throw new Error("Email verified. Please login with your password.");
+        }
       }
 
-      router.push("/portal");
-      router.refresh();
+      const callbackUrl = searchParams.get("callbackUrl");
+      window.location.assign(callbackUrl?.startsWith("/") ? callbackUrl : "/profile");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setStatus("idle");
     }
+  }
+
+  async function handleResendCode() {
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        devCode?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(typeof result?.error === "string" ? result.error : "Could not send verification code");
+      }
+
+      setMessage(
+        result?.devCode
+          ? `Email sending is not configured. Development code: ${result.devCode}`
+          : result?.message ?? "Verification code sent. Please check your email."
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setStatus("google");
+    setMessage("");
+
+    const callbackUrl = searchParams.get("callbackUrl");
+    await signIn("google", {
+      callbackUrl: callbackUrl?.startsWith("/") ? callbackUrl : "/profile",
+    });
   }
 
   return (
@@ -145,8 +252,28 @@ export function AuthPanel({ mode }: AuthPanelProps) {
               <p className="mt-2 text-sm text-muted">{data.subtitle}</p>
             </div>
 
+            {!awaitingVerification && (
+              <>
+                <button
+                  type="button"
+                  disabled={status !== "idle"}
+                  onClick={handleGoogleSignIn}
+                  className="group flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 bg-white px-6 py-4 text-sm font-extrabold text-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-slate-50 hover:shadow-[0_22px_55px_rgba(93,63,211,0.16)] focus:outline-none focus:ring-4 focus:ring-violet-300/35 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <GoogleMark />
+                  <span>{status === "google" ? "Connecting to Google..." : "Continue with Google"}</span>
+                </button>
+
+                <div className="my-6 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-violet-200" />
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-violet-500">or</span>
+                  <span className="h-px flex-1 bg-violet-200" />
+                </div>
+              </>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
-              {isRegister && (
+              {isRegister && !awaitingVerification && (
                 <Field
                   icon={<UserRound size={18} />}
                   label="Name"
@@ -157,26 +284,30 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                   onChange={(value) => updateField("name", value)}
                 />
               )}
-              <Field
-                icon={<Mail size={18} />}
-                label="Email"
-                name="email"
-                type="email"
-                placeholder="you@company.com"
-                value={form.email}
-                onChange={(value) => updateField("email", value)}
-              />
-              <Field
-                icon={<LockKeyhole size={18} />}
-                label="Password"
-                name="password"
-                type="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={(value) => updateField("password", value)}
-              />
+              {!awaitingVerification && (
+                <>
+                  <Field
+                    icon={<Mail size={18} />}
+                    label="Email"
+                    name="email"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={form.email}
+                    onChange={(value) => updateField("email", value)}
+                  />
+                  <Field
+                    icon={<LockKeyhole size={18} />}
+                    label="Password"
+                    name="password"
+                    type="password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(value) => updateField("password", value)}
+                  />
+                </>
+              )}
 
-              {isRegister && (
+              {isRegister && !awaitingVerification && (
                 <Field
                   icon={<LockKeyhole size={18} />}
                   label="Confirm Password"
@@ -188,25 +319,48 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                 />
               )}
 
+              {isRegister && awaitingVerification && (
+                <Field
+                  icon={<Mail size={18} />}
+                  label="Verification Code"
+                  name="verificationCode"
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={verificationCode}
+                  onChange={setVerificationCode}
+                />
+              )}
+
               {message && (
-                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                <p className="rounded-2xl border border-violet-300/40 bg-white/10 px-4 py-3 text-sm font-semibold text-ink">
                   {message}
                 </p>
               )}
 
               <button
                 type="submit"
-                disabled={status === "loading"}
+                disabled={status !== "idle"}
                 className={cn(
                   "group flex w-full items-center justify-center gap-3 rounded-full px-6 py-4 text-sm font-bold text-white shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-card-lg",
                   "bg-violet-gradient disabled:cursor-not-allowed disabled:opacity-70"
                 )}
               >
-                {status === "loading" ? "Please wait..." : data.button}
+                {status === "loading" ? "Please wait..." : awaitingVerification ? "Verify Email" : data.button}
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 group-hover:translate-x-1">
                   <ArrowRight size={15} />
                 </span>
               </button>
+
+              {isRegister && awaitingVerification && (
+                <button
+                  type="button"
+                  disabled={status === "loading"}
+                  onClick={handleResendCode}
+                  className="w-full text-center text-sm font-bold text-violet-600 transition hover:text-violet-700 disabled:opacity-60"
+                >
+                  Send a new code
+                </button>
+              )}
             </form>
 
             <p className="mt-7 text-center text-sm text-muted">

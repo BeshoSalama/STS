@@ -58,7 +58,7 @@ export default async function IndustryPage({ params }: { params: { slug: string 
                   {industry.description}
                 </p>
                 <div className="mt-7">
-                  <Button href="/contact">Get a Free Consultation</Button>
+                  <Button href="/contact-us">Get a Free Consultation</Button>
                 </div>
               </div>
 

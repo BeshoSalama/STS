@@ -26,9 +26,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL(role ? "/portal" : "/login", req.url));
   }
 
+  if (pathname.startsWith("/contact") && !role) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: ["/admin/:path*", "/portal/:path*", "/profile/:path*", "/profile", "/brief"],
+  matcher: ["/admin/:path*", "/portal/:path*", "/profile/:path*", "/profile", "/brief", "/contact/:path*", "/contact"],
 };

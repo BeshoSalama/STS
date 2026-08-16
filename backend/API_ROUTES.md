@@ -62,6 +62,5 @@ frontend/src/components/sections/ContactPanel.tsx
 frontend/src/app/brief/page.tsx
 frontend/src/components/sections/PackageCards.tsx
 frontend/src/components/sections/AuthPanel.tsx
-prisma/schema.prisma
-prisma/seed.ts
+backend/src/STS.Infrastructure/Persistence/StsDbContext.cs
 ```

@@ -4,14 +4,6 @@ export interface NavLink {
   variant?: "pill" | "default";
 }
 
-export interface ServiceItem {
-  title: string;
-  eyebrow: string;
-  description: string;
-  cta: string;
-  icon: "consulting" | "management" | "strategy";
-}
-
 export interface TeamMember {
   name: string;
   role: string;
@@ -27,6 +19,12 @@ export interface ProjectItem {
   category: string;
   image: string;
   imageAlt: string;
+  slug?: string;
+  details?: string | null;
+  videoUrl?: string | null;
+  content?: string | null;
+  published?: boolean;
+  order?: number;
 }
 
 export interface ResultCard {
@@ -60,6 +58,7 @@ export interface ValueProp {
 }
 
 export interface PackagePlan {
+  id?: string;
   name: string;
   tagline: string;
   price: string;
@@ -68,6 +67,7 @@ export interface PackagePlan {
   features: string[];
   cta: string;
   featured?: boolean;
+  order?: number;
 }
 
 export interface PackageAddOn {
@@ -75,4 +75,5 @@ export interface PackageAddOn {
   label: string;
   description: string;
   price: number;
+  order?: number;
 }

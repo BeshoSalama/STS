@@ -3,15 +3,17 @@
 ## Setup database
 
 ```bash
-npm run db:setup
+docker compose up -d db
 ```
 
 The main local database is SQL Server:
 
 ```text
-Server:   localhost
+Server:   localhost,1433
 Database: STSAgency
 ```
+
+Connection strings are read by the ASP.NET Core API from `SQLSERVER_CONNECTION_STRING`.
 
 ## Run frontend only
 
@@ -25,6 +27,8 @@ Frontend URL:
 http://localhost:3000
 ```
 
+The browser opens automatically when the frontend is ready.
+
 ## Run backend API only
 
 ```bash
@@ -36,6 +40,8 @@ Backend URL:
 ```text
 http://localhost:4000
 ```
+
+The browser opens automatically when the backend Swagger UI is ready.
 
 Swagger API docs:
 
@@ -62,7 +68,9 @@ Frontend: http://localhost:3000
 Backend:  http://localhost:4000
 ```
 
-The frontend uses `NEXT_PUBLIC_API_URL` when the standalone .NET backend is running, and falls back to the internal Next.js API routes if the backend is offline.
+Both browser tabs open automatically when each service is ready.
+
+The frontend sends application data to the standalone ASP.NET Core Web API through `NEXT_PUBLIC_API_URL`.
 
 ## Open the code in VS Code
 
@@ -81,7 +89,6 @@ backend/src/STS.Domain
 backend/src/STS.Infrastructure
 frontend/src/app
 frontend/src/components
-prisma/schema.prisma
 ```
 
 Default seeded users:

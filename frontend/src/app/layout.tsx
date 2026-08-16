@@ -18,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "STS Agency â€” Growing Brands",
+  title: "STS Agency - Growing Brands",
   description:
     "We build scalable marketing systems powered by data, creativity, and performance.",
   icons: {

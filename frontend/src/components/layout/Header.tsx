@@ -7,6 +7,7 @@ import { Menu, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { navLinks } from "@/lib/content/nav";
 import { gsap } from "@/lib/animations/gsapConfig";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Logo } from "./Logo";
 
 const headerNavLinks = navLinks.filter((link) => link.href !== "/projects");
@@ -19,6 +20,7 @@ type HeaderUser = {
 
 export function Header() {
   const pathname = usePathname();
+  const isConsultationPage = pathname === "/contact-us";
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<HeaderUser | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -131,14 +133,22 @@ export function Header() {
   return (
     <header className="fixed inset-x-0 top-3 z-50 px-4 sm:top-4 sm:px-6">
       <div className="container flex items-center justify-between gap-4">
-        <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-full border border-violet-200/80 bg-white/95 shadow-card backdrop-blur-md sm:h-16 sm:w-16">
+        <div
+          className={cn(
+            "flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-full border shadow-card backdrop-blur-md sm:h-16 sm:w-16",
+            isConsultationPage ? "border-violet-400/25 bg-black/55" : "border-violet-200/80 bg-white/95"
+          )}
+        >
           <Logo className="h-10 w-10 sm:h-11 sm:w-11" />
         </div>
 
         <div className="hidden flex-1 items-center justify-center overflow-hidden lg:flex">
           <nav
             ref={navRef}
-            className="relative flex min-h-16 max-w-full items-center gap-1 rounded-full border border-violet-400/25 bg-surface-card/90 px-4 shadow-card backdrop-blur-xl"
+            className={cn(
+              "relative flex min-h-16 max-w-full items-center gap-1 rounded-full border px-4 shadow-card backdrop-blur-xl",
+              isConsultationPage ? "border-violet-400/18 bg-black/58" : "border-violet-400/25 bg-surface-card/90"
+            )}
           >
             <span
               ref={pillRef}
@@ -157,7 +167,7 @@ export function Header() {
                   className={cn(
                     "relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300",
                     link.variant === "pill" && "ml-2",
-                    isActive ? "text-white" : "text-ink/70 hover:text-ink"
+                    isActive ? "text-white" : isConsultationPage ? "text-white/76 hover:text-white" : "text-ink/70 hover:text-ink"
                   )}
                   data-ripple={link.variant === "pill" ? true : undefined}
                 >
@@ -191,25 +201,32 @@ export function Header() {
       )}
 
       {user ? (
-        <Link
-          ref={loginLinkRef}
-          href={userHref}
-          className="absolute right-4 top-0 hidden h-16 max-w-[210px] items-center justify-center gap-3 rounded-full border border-violet-400/25 bg-surface-card/90 px-4 text-sm font-bold leading-none text-ink/75 shadow-card backdrop-blur-xl transition-colors duration-300 hover:bg-violet-50 hover:text-ink sm:right-6 lg:inline-flex"
-          data-no-ripple
-          aria-label={`Open ${userLabel} account`}
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-gradient text-white">
-            <UserRound size={17} />
-          </span>
-          <span className="truncate">{userLabel}</span>
-        </Link>
+        <div className="absolute right-4 top-0 hidden h-16 items-center gap-2 sm:right-6 lg:flex">
+          <NotificationBell />
+          <Link
+            ref={loginLinkRef}
+            href={userHref}
+            className="inline-flex h-16 max-w-[210px] items-center justify-center gap-3 rounded-full border border-violet-400/25 bg-surface-card/90 px-4 text-sm font-bold leading-none text-ink/75 shadow-card backdrop-blur-xl transition-colors duration-300 hover:bg-violet-50 hover:text-ink"
+            data-no-ripple
+            aria-label={`Open ${userLabel} account`}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-gradient text-white">
+              <UserRound size={17} />
+            </span>
+            <span className="truncate">{userLabel}</span>
+          </Link>
+        </div>
       ) : (
         <Link
           ref={loginLinkRef}
           href="/login"
           className={cn(
             "absolute right-4 top-0 hidden h-16 min-w-[98px] items-center justify-center rounded-full border border-violet-400/25 px-5 text-sm font-bold leading-none shadow-card backdrop-blur-xl transition-colors duration-300 sm:right-6 lg:inline-flex",
-            pathname === "/login" ? "bg-violet-gradient text-white" : "bg-surface-card/90 text-ink/75 hover:bg-violet-50 hover:text-ink"
+            pathname === "/login"
+              ? "bg-violet-gradient text-white"
+              : isConsultationPage
+              ? "bg-black/58 text-white/78 hover:text-white"
+              : "bg-surface-card/90 text-ink/75 hover:bg-violet-50 hover:text-ink"
           )}
           data-no-ripple
         >
@@ -241,22 +258,27 @@ export function Header() {
                     : "text-ink/70"
                 )}
               >
-                {link.label}
+                  {link.label}
               </Link>
             );
           })}
           <div className="mt-2 grid gap-2 border-t border-ink/5 pt-3">
             {user ? (
-              <Link
-                href={userHref}
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-center gap-3 rounded-2xl bg-surface px-4 py-3 text-center text-base font-semibold text-ink/75 transition-colors"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-gradient text-white">
-                  <UserRound size={16} />
-                </span>
-                <span className="truncate">{userLabel}</span>
-              </Link>
+              <>
+                <div className="flex justify-center">
+                  <NotificationBell />
+                </div>
+                <Link
+                  href={userHref}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center gap-3 rounded-2xl bg-surface px-4 py-3 text-center text-base font-semibold text-ink/75 transition-colors"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-gradient text-white">
+                    <UserRound size={16} />
+                  </span>
+                  <span className="truncate">{userLabel}</span>
+                </Link>
+              </>
             ) : (
               <Link
                 href="/login"
