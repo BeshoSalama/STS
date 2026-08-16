@@ -77,3 +77,10 @@ export interface PackageAddOn {
   price: number;
   order?: number;
 }
+
+export interface CustomPackageSettings {
+  quantityDiscountStart: number;
+  quantityDiscountPercent: number;
+  maxQuantityDiscount: number;
+  annualDiscountPercent: number;
+}

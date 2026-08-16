@@ -2888,6 +2888,7 @@ main:not(:has(.home-page-dark)) > section {
   height: 118px;
   place-items: end center;
   overflow: hidden;
+  --gauge-power-deg: 0deg;
 }
 
 .pricing-gauge::before {
@@ -2895,7 +2896,14 @@ main:not(:has(.home-page-dark)) > section {
   inset: 0;
   content: "";
   border-radius: 236px 236px 0 0;
-  background: conic-gradient(from 270deg at 50% 100%, #9f3cff 0deg, #c69cff 105deg, rgba(255, 255, 255, 0.08) 106deg 180deg, transparent 181deg);
+  background: conic-gradient(
+    from 270deg at 50% 100%,
+    #9f3cff 0,
+    #c69cff var(--gauge-power-deg),
+    rgba(255, 255, 255, 0.08) var(--gauge-power-deg),
+    rgba(255, 255, 255, 0.08) 180deg,
+    transparent 181deg
+  );
 }
 
 .pricing-gauge::after {

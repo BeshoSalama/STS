@@ -1,4 +1,5 @@
-import { PackageAddOn, PackagePlan } from "@/types/content";
+import { CustomPackageSettings, PackageAddOn, PackagePlan } from "@/types/content";
+import { defaultCustomPackageSettings } from "@/lib/customPackagePricing";
 
 export const packagePlans: PackagePlan[] = [
   {
@@ -114,6 +115,8 @@ export const customPackageMeta = {
   cta: "Build My Package",
   period: "/mo",
 };
+
+export const customPackageSettings: CustomPackageSettings = defaultCustomPackageSettings;
 
 export async function getPackagePlans(): Promise<PackagePlan[]> {
   const { db } = await import("@/lib/db");
@@ -253,6 +256,30 @@ export async function getCustomPackageMeta() {
   } catch (error) {
     console.error("getCustomPackageMeta failed:", error);
     return customPackageMeta;
+  }
+}
+
+export async function getCustomPackageSettings(): Promise<CustomPackageSettings> {
+  const { db } = await import("@/lib/db");
+
+  try {
+    const storedSettings = await db.customPackageSettings.upsert({
+      where: {
+        id: 1,
+      },
+      update: {},
+      create: customPackageSettings,
+    });
+
+    return {
+      quantityDiscountStart: storedSettings.quantityDiscountStart,
+      quantityDiscountPercent: storedSettings.quantityDiscountPercent,
+      maxQuantityDiscount: storedSettings.maxQuantityDiscount,
+      annualDiscountPercent: storedSettings.annualDiscountPercent,
+    };
+  } catch (error) {
+    console.error("getCustomPackageSettings failed:", error);
+    return customPackageSettings;
   }
 }
 

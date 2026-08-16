@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { customPackageSettings } from "@/lib/content/packages";
 import { db } from "@/lib/db";
 import { requireAdminSession } from "@/lib/rbac";
 
@@ -114,11 +115,42 @@ async function deleteAddOn(formData: FormData) {
   revalidatePath("/pricing");
 }
 
+async function updateCustomPackageSettings(formData: FormData) {
+  "use server";
+  if (!(await requireAdminSession())) throw new Error("Admin access required");
+
+  await db.customPackageSettings.upsert({
+    where: { id: 1 },
+    update: {
+      quantityDiscountStart: Number(formData.get("quantityDiscountStart") ?? customPackageSettings.quantityDiscountStart),
+      quantityDiscountPercent: Number(formData.get("quantityDiscountPercent") ?? customPackageSettings.quantityDiscountPercent),
+      maxQuantityDiscount: Number(formData.get("maxQuantityDiscount") ?? customPackageSettings.maxQuantityDiscount),
+      annualDiscountPercent: Number(formData.get("annualDiscountPercent") ?? customPackageSettings.annualDiscountPercent),
+    },
+    create: {
+      id: 1,
+      quantityDiscountStart: Number(formData.get("quantityDiscountStart") ?? customPackageSettings.quantityDiscountStart),
+      quantityDiscountPercent: Number(formData.get("quantityDiscountPercent") ?? customPackageSettings.quantityDiscountPercent),
+      maxQuantityDiscount: Number(formData.get("maxQuantityDiscount") ?? customPackageSettings.maxQuantityDiscount),
+      annualDiscountPercent: Number(formData.get("annualDiscountPercent") ?? customPackageSettings.annualDiscountPercent),
+    },
+  });
+
+  revalidatePath("/admin/packages");
+  revalidatePath("/pricing");
+  revalidatePath("/pricing/custom");
+}
+
 export default async function AdminPackagesPage() {
   if (!(await requireAdminSession())) redirect("/admin/leads");
-  const [plans, addOns] = await Promise.all([
+  const [plans, addOns, settings] = await Promise.all([
     db.packagePlan.findMany({ orderBy: { order: "asc" } }),
     db.packageAddOn.findMany({ orderBy: { order: "asc" } }),
+    db.customPackageSettings.upsert({
+      where: { id: 1 },
+      update: {},
+      create: customPackageSettings,
+    }),
   ]);
 
   return (
@@ -178,6 +210,30 @@ export default async function AdminPackagesPage() {
           <input name="price" required type="number" min="0" placeholder="350" className={inputClass} />
           <input name="order" type="number" defaultValue="0" className={inputClass} />
           <button className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold md:col-span-4">Create Service</button>
+        </form>
+      </div>
+
+      <div className="rounded-lg border border-emerald-300/15 bg-emerald-400/[0.04] p-5">
+        <h2 className="font-display text-2xl font-bold">Custom Package Discounts</h2>
+        <p className="mt-2 text-sm text-white/60">Control the automatic discount shown in the custom package builder.</p>
+        <form action={updateCustomPackageSettings} className="mt-4 grid gap-3 md:grid-cols-5">
+          <label className="grid gap-2 text-xs font-bold text-white/70">
+            Discount starts at quantity
+            <input name="quantityDiscountStart" type="number" min="1" max="99" defaultValue={settings.quantityDiscountStart} className={inputClass} />
+          </label>
+          <label className="grid gap-2 text-xs font-bold text-white/70">
+            Discount per extra item %
+            <input name="quantityDiscountPercent" type="number" min="0" max="95" defaultValue={settings.quantityDiscountPercent} className={inputClass} />
+          </label>
+          <label className="grid gap-2 text-xs font-bold text-white/70">
+            Max quantity discount %
+            <input name="maxQuantityDiscount" type="number" min="0" max="95" defaultValue={settings.maxQuantityDiscount} className={inputClass} />
+          </label>
+          <label className="grid gap-2 text-xs font-bold text-white/70">
+            Annual discount %
+            <input name="annualDiscountPercent" type="number" min="0" max="95" defaultValue={settings.annualDiscountPercent} className={inputClass} />
+          </label>
+          <button className="self-end rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white">Save Discounts</button>
         </form>
       </div>
 

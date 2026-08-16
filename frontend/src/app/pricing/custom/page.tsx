@@ -1,12 +1,17 @@
 import { CustomPackageBuilder } from "@/components/sections/PackageCards";
 import { PricingBackdrop } from "@/components/sections/PricingBackdrop";
 import { auth } from "@/lib/auth";
-import { getCustomPackageBaseFee, getPackageAddOns } from "@/lib/content/packages";
+import { getCustomPackageBaseFee, getCustomPackageSettings, getPackageAddOns } from "@/lib/content/packages";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomPricingPage() {
-  const [packageAddOns, customPackageBaseFee, session] = await Promise.all([getPackageAddOns(), getCustomPackageBaseFee(), auth()]);
+  const [packageAddOns, customPackageBaseFee, customPackageSettings, session] = await Promise.all([
+    getPackageAddOns(),
+    getCustomPackageBaseFee(),
+    getCustomPackageSettings(),
+    auth(),
+  ]);
 
   return (
     <section className="pricing-page relative overflow-hidden pb-24 pt-36 sm:pt-44">
@@ -27,6 +32,7 @@ export default async function CustomPricingPage() {
       <CustomPackageBuilder
         packageAddOns={packageAddOns}
         customPackageBaseFee={customPackageBaseFee}
+        customPackageSettings={customPackageSettings}
         isAuthenticated={Boolean(session?.user?.id)}
       />
     </section>

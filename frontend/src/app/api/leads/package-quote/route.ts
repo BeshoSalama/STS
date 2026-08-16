@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { customPackageSettings } from "@/lib/content/packages";
+import { calculateCustomPackageTotal } from "@/lib/customPackagePricing";
 import { db } from "@/lib/db";
 import { sendLeadNotification } from "@/lib/email";
 import { getClientIp, rateLimit } from "@/lib/rateLimit";
@@ -28,12 +30,23 @@ export async function POST(req: Request) {
     ? parsed.data.addOns
     : parsed.data.addOnIds.map((id) => ({ id, quantity: 1 }));
   const quantities = new Map(requestedAddOns.map((addOn) => [addOn.id, addOn.quantity]));
-  const [addOns, baseFeePlan] = await Promise.all([
+  const [addOns, baseFeePlan, settings] = await Promise.all([
     db.packageAddOn.findMany({ where: { id: { in: requestedAddOns.map((addOn) => addOn.id) } } }),
     db.packagePlan.findUnique({ where: { name: "Custom Package Base Fee" } }),
+    db.customPackageSettings.upsert({
+      where: { id: 1 },
+      update: {},
+      create: customPackageSettings,
+    }),
   ]);
   const rawTotal = addOns.reduce((sum, addOn) => sum + addOn.price * (quantities.get(addOn.id) ?? 1), parsePrice(baseFeePlan?.price));
-  const total = parsed.data.billing === "annual" ? Math.round(rawTotal * 0.85) : rawTotal;
+  const selectedCount = addOns.reduce((sum, addOn) => sum + (quantities.get(addOn.id) ?? 1), 0);
+  const { total, discountPercent, quantityDiscountPercent, annualDiscountPercent, savings } = calculateCustomPackageTotal({
+    rawTotal,
+    selectedCount,
+    billing: parsed.data.billing,
+    settings,
+  });
   const quoteItems = addOns.map((addOn) => ({ id: addOn.id, label: addOn.label, quantity: quantities.get(addOn.id) ?? 1, price: addOn.price }));
 
   const result = await db.$transaction(async (tx) => {
@@ -44,7 +57,18 @@ export async function POST(req: Request) {
         email: user?.email ?? null,
         phone: "not-provided",
         userId: user?.id,
-        payload: JSON.stringify({ planName: parsed.data.planName, addOnIds: parsed.data.addOnIds, addOns: quoteItems, billing: parsed.data.billing, total }),
+        payload: JSON.stringify({
+          planName: parsed.data.planName,
+          addOnIds: parsed.data.addOnIds,
+          addOns: quoteItems,
+          billing: parsed.data.billing,
+          rawTotal,
+          total,
+          savings,
+          discountPercent,
+          quantityDiscountPercent,
+          annualDiscountPercent,
+        }),
       },
     });
 

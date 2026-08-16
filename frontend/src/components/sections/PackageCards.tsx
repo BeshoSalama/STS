@@ -25,7 +25,8 @@ import {
 import { cn } from "@/lib/cn";
 import { ManualPaymentCheckout, type PublicManualPaymentSettings } from "@/components/sections/ManualPaymentCheckout";
 import { apiFetch } from "@/lib/apiClient";
-import type { PackageAddOn, PackagePlan } from "@/types/content";
+import { calculateCustomPackageTotal } from "@/lib/customPackagePricing";
+import type { CustomPackageSettings, PackageAddOn, PackagePlan } from "@/types/content";
 
 const addOnIcons = [PenLine, Megaphone, BarChart3, Target, Box, Wand2, ShieldCheck, Headphones];
 const editorInputClass =
@@ -385,10 +386,12 @@ function CustomPackageEditorDialog({
 export function CustomPackageBuilder({
   packageAddOns,
   customPackageBaseFee,
+  customPackageSettings,
   isAuthenticated,
 }: {
   packageAddOns: PackageAddOn[];
   customPackageBaseFee: number;
+  customPackageSettings: CustomPackageSettings;
   isAuthenticated: boolean;
 }) {
   const router = useRouter();
@@ -406,11 +409,16 @@ export function CustomPackageBuilder({
     [packageAddOns, quantities]
   );
 
-  const rawTotal = selectedItems.reduce((sum, addOn) => sum + addOn.price * addOn.quantity, customPackageBaseFee);
-  const total = billing === "annual" ? Math.round(rawTotal * 0.85) : rawTotal;
   const selectedCount = selectedItems.reduce((sum, addOn) => sum + addOn.quantity, 0);
-  const savings = rawTotal - total;
-  const level = selectedCount >= 14 ? "Scale" : selectedCount >= 7 ? "Growth" : "Start";
+  const rawTotal = selectedItems.reduce((sum, addOn) => sum + addOn.price * addOn.quantity, customPackageBaseFee);
+  const { total, savings, quantityDiscountPercent, annualDiscountPercent, discountPercent } = calculateCustomPackageTotal({
+    rawTotal,
+    selectedCount,
+    billing,
+    settings: customPackageSettings,
+  });
+  const power = Math.min(100, Math.round((selectedCount / Math.max(packageAddOns.length, 1)) * 100));
+  const level = power >= 80 ? "Scale" : power >= 45 ? "Growth" : selectedCount > 0 ? "Start" : "Ready";
 
   function updateQuantity(id: string, next: number) {
     setQuantities((prev) => ({ ...prev, [id]: Math.max(0, Math.min(99, next)) }));
@@ -514,10 +522,10 @@ export function CustomPackageBuilder({
               باقتك المخصصة
               <Sparkles size={17} className="text-[#dac7f5]" />
             </p>
-            <div className="pricing-gauge mx-auto mt-5">
+            <div className="pricing-gauge mx-auto mt-5" style={{ "--gauge-power-deg": `${Math.round(power * 1.8)}deg` } as CSSProperties}>
               <span>{level}</span>
             </div>
-            <p className="mt-2 text-xs font-bold text-[#d8cbea]/70">أنت على الطريق الصحيح للنمو</p>
+            <p className="mt-2 text-xs font-bold text-[#d8cbea]/70">Power {power}% - كل اختيار بيقوي الباقة</p>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -531,7 +539,18 @@ export function CustomPackageBuilder({
             </div>
             <div className="rounded-[8px] border border-emerald-300/15 bg-emerald-400/5 p-3 text-center">
               <p className="text-[10px] text-emerald-100/55">التوفير</p>
-              <strong className="mt-1 block text-emerald-200">{billing === "annual" ? "15%" : "0%"}</strong>
+              <strong className="mt-1 block text-emerald-200">{discountPercent}%</strong>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 rounded-[8px] border border-emerald-300/12 bg-emerald-400/[0.04] p-3 text-xs font-bold text-emerald-100/80">
+            <div className="flex items-center justify-between gap-3">
+              <span>خصم كثرة الخدمات</span>
+              <strong>{quantityDiscountPercent}%</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>خصم الدفع السنوي</span>
+              <strong>{annualDiscountPercent}%</strong>
             </div>
           </div>
 
@@ -558,7 +577,7 @@ export function CustomPackageBuilder({
               <strong className="font-display text-5xl font-black text-[#c69cff]">${total.toLocaleString()}</strong>
               <span className="pb-2 text-sm font-bold text-white">/mo</span>
             </div>
-            {savings > 0 && <p className="mt-2 text-xs font-bold text-emerald-200">وفرت ${savings.toLocaleString()} عند اختيار الدفع السنوي.</p>}
+            {savings > 0 && <p className="mt-2 text-xs font-bold text-emerald-200">وفرت ${savings.toLocaleString()} على الباقة المختارة.</p>}
           </div>
 
           {status === "done" && <p className="mt-4 text-sm font-bold text-emerald-200">تم حفظ طلب الباقة، هنرجع لك بالتفاصيل.</p>}
