@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -53,9 +53,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-violet-700">{label}</span>
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-violet-700">
+        {label}
+      </span>
+
       <span className="flex items-center gap-3 rounded-full border border-violet-400/30 bg-white/10 px-5 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] transition focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-400/30">
         <span className="text-violet-500">{icon}</span>
+
         <input
           name={name}
           type={type}
@@ -72,7 +76,11 @@ function Field({
 function GoogleMark() {
   return (
     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[18px] w-[18px]">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-[18px] w-[18px]"
+      >
         <path
           fill="#4285F4"
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -87,7 +95,7 @@ function GoogleMark() {
         />
         <path
           fill="#EA4335"
-          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"
+          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 0 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"
         />
       </svg>
     </span>
@@ -98,14 +106,37 @@ export function AuthPanel({ mode }: AuthPanelProps) {
   const searchParams = useSearchParams();
   const data = copy[mode];
   const isRegister = mode === "register";
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const [verificationCode, setVerificationCode] = useState("");
   const [awaitingVerification, setAwaitingVerification] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "google">("idle");
   const [message, setMessage] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setResendCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   function updateField(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -118,18 +149,32 @@ export function AuthPanel({ mode }: AuthPanelProps) {
         if (awaitingVerification) {
           const response = await fetch("/api/auth/verify-email", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: form.email, code: verificationCode }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: form.email,
+              code: verificationCode,
+            }),
           });
 
           if (!response.ok) {
-            const data = (await response.json().catch(() => null)) as { error?: string } | null;
-            throw new Error(typeof data?.error === "string" ? data.error : "Invalid verification code");
+            const result = (await response.json().catch(() => null)) as {
+              error?: string;
+            } | null;
+
+            throw new Error(
+              typeof result?.error === "string"
+                ? result.error
+                : "Invalid verification code"
+            );
           }
         } else {
           const response = await fetch("/api/auth/register", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify(form),
           });
 
@@ -137,18 +182,32 @@ export function AuthPanel({ mode }: AuthPanelProps) {
             error?: string;
             message?: string;
             devCode?: string;
+            retryAfter?: number;
+            resendCooldown?: number;
           } | null;
 
           if (!response.ok) {
-            throw new Error(typeof result?.error === "string" ? result.error : "Could not create account");
+            if (response.status === 429 && result?.retryAfter) {
+              setResendCooldown(result.retryAfter);
+            }
+
+            throw new Error(
+              typeof result?.error === "string"
+                ? result.error
+                : "Could not create account"
+            );
           }
 
           setAwaitingVerification(true);
+          setResendCooldown(result?.resendCooldown ?? 60);
+
           setMessage(
             result?.devCode
               ? `Email sending is not configured. Development code: ${result.devCode}`
-              : result?.message ?? "Verification code sent. Please check your email."
+              : result?.message ??
+                  "Verification code sent. Please check your email."
           );
+
           return;
         }
       } else {
@@ -171,27 +230,40 @@ export function AuthPanel({ mode }: AuthPanelProps) {
         });
 
         if (result?.error) {
-          throw new Error("Email verified. Please login with your password.");
+          throw new Error(
+            "Email verified. Please login with your password."
+          );
         }
       }
 
       const callbackUrl = searchParams.get("callbackUrl");
-      window.location.assign(callbackUrl?.startsWith("/") ? callbackUrl : "/profile");
+
+      window.location.assign(
+        callbackUrl?.startsWith("/") ? callbackUrl : "/profile"
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Something went wrong");
+      setMessage(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
     } finally {
       setStatus("idle");
     }
   }
 
   async function handleResendCode() {
+    if (resendCooldown > 0) {
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(form),
       });
 
@@ -199,19 +271,34 @@ export function AuthPanel({ mode }: AuthPanelProps) {
         error?: string;
         message?: string;
         devCode?: string;
+        retryAfter?: number;
+        resendCooldown?: number;
       } | null;
 
       if (!response.ok) {
-        throw new Error(typeof result?.error === "string" ? result.error : "Could not send verification code");
+        if (response.status === 429 && result?.retryAfter) {
+          setResendCooldown(result.retryAfter);
+        }
+
+        throw new Error(
+          typeof result?.error === "string"
+            ? result.error
+            : "Could not send verification code"
+        );
       }
+
+      setResendCooldown(result?.resendCooldown ?? 60);
 
       setMessage(
         result?.devCode
           ? `Email sending is not configured. Development code: ${result.devCode}`
-          : result?.message ?? "Verification code sent. Please check your email."
+          : result?.message ??
+              "Verification code sent. Please check your email."
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Something went wrong");
+      setMessage(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
     } finally {
       setStatus("idle");
     }
@@ -222,8 +309,11 @@ export function AuthPanel({ mode }: AuthPanelProps) {
     setMessage("");
 
     const callbackUrl = searchParams.get("callbackUrl");
+
     await signIn("google", {
-      callbackUrl: callbackUrl?.startsWith("/") ? callbackUrl : "/profile",
+      callbackUrl: callbackUrl?.startsWith("/")
+        ? callbackUrl
+        : "/profile",
     });
   }
 
@@ -231,24 +321,40 @@ export function AuthPanel({ mode }: AuthPanelProps) {
     <section className="relative min-h-screen overflow-hidden px-4 pb-20 pt-32 sm:pt-36">
       <div className="container grid min-h-[calc(100vh-10rem)] items-center gap-8 lg:grid-cols-[1fr_0.92fr]">
         <div className="max-w-2xl">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-violet-600">{data.eyebrow}</p>
+          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-violet-600">
+            {data.eyebrow}
+          </p>
+
           <h1 className="font-display text-5xl font-extrabold leading-[0.95] text-ink sm:text-7xl">
             STS{" "}
             <span className="block">
-              <span className="block bg-violet-gradient-text bg-clip-text text-transparent sm:inline">Growth</span>
-              <span className="block bg-violet-gradient-text bg-clip-text text-transparent sm:ml-3 sm:inline">Portal</span>
+              <span className="block bg-violet-gradient-text bg-clip-text text-transparent sm:inline">
+                Growth
+              </span>
+
+              <span className="block bg-violet-gradient-text bg-clip-text text-transparent sm:ml-3 sm:inline">
+                Portal
+              </span>
             </span>
           </h1>
+
           <p className="mt-6 max-w-md text-base leading-8 text-muted sm:text-lg">
-            Keep your brand requests, campaign updates, and consultation details in one focused place.
+            Keep your brand requests, campaign updates, and consultation
+            details in one focused place.
           </p>
         </div>
 
         <div className="rounded-[2rem] border border-violet-400/30 bg-surface-card/90 p-5 shadow-card-lg backdrop-blur-xl sm:p-7">
           <div className="rounded-[1.55rem] border border-violet-200/80 bg-violet-50/70 p-6 sm:p-8">
             <div className="mb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-500">{data.eyebrow}</p>
-              <h2 className="mt-3 font-display text-4xl font-extrabold text-ink">{data.title}</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-500">
+                {data.eyebrow}
+              </p>
+
+              <h2 className="mt-3 font-display text-4xl font-extrabold text-ink">
+                {data.title}
+              </h2>
+
               <p className="mt-2 text-sm text-muted">{data.subtitle}</p>
             </div>
 
@@ -261,12 +367,19 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                   className="group flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 bg-white px-6 py-4 text-sm font-extrabold text-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-slate-50 hover:shadow-[0_22px_55px_rgba(93,63,211,0.16)] focus:outline-none focus:ring-4 focus:ring-violet-300/35 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <GoogleMark />
-                  <span>{status === "google" ? "Connecting to Google..." : "Continue with Google"}</span>
+
+                  <span>
+                    {status === "google"
+                      ? "Connecting to Google..."
+                      : "Continue with Google"}
+                  </span>
                 </button>
 
                 <div className="my-6 flex items-center gap-3">
                   <span className="h-px flex-1 bg-violet-200" />
-                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-violet-500">or</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-violet-500">
+                    or
+                  </span>
                   <span className="h-px flex-1 bg-violet-200" />
                 </div>
               </>
@@ -284,6 +397,7 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                   onChange={(value) => updateField("name", value)}
                 />
               )}
+
               {!awaitingVerification && (
                 <>
                   <Field
@@ -295,6 +409,7 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                     value={form.email}
                     onChange={(value) => updateField("email", value)}
                   />
+
                   <Field
                     icon={<LockKeyhole size={18} />}
                     label="Password"
@@ -315,7 +430,9 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                   type="password"
                   placeholder="Confirm password"
                   value={form.confirmPassword}
-                  onChange={(value) => updateField("confirmPassword", value)}
+                  onChange={(value) =>
+                    updateField("confirmPassword", value)
+                  }
                 />
               )}
 
@@ -345,7 +462,12 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                   "bg-violet-gradient disabled:cursor-not-allowed disabled:opacity-70"
                 )}
               >
-                {status === "loading" ? "Please wait..." : awaitingVerification ? "Verify Email" : data.button}
+                {status === "loading"
+                  ? "Please wait..."
+                  : awaitingVerification
+                    ? "Verify Email"
+                    : data.button}
+
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 group-hover:translate-x-1">
                   <ArrowRight size={15} />
                 </span>
@@ -354,18 +476,23 @@ export function AuthPanel({ mode }: AuthPanelProps) {
               {isRegister && awaitingVerification && (
                 <button
                   type="button"
-                  disabled={status === "loading"}
+                  disabled={status === "loading" || resendCooldown > 0}
                   onClick={handleResendCode}
-                  className="w-full text-center text-sm font-bold text-violet-600 transition hover:text-violet-700 disabled:opacity-60"
+                  className="w-full text-center text-sm font-bold text-violet-600 transition hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Send a new code
+                  {resendCooldown > 0
+                    ? `Send a new code in ${resendCooldown}s`
+                    : "Send a new code"}
                 </button>
               )}
             </form>
 
             <p className="mt-7 text-center text-sm text-muted">
               {data.switchText}{" "}
-              <Link href={data.switchHref} className="font-bold text-violet-600 hover:text-violet-700">
+              <Link
+                href={data.switchHref}
+                className="font-bold text-violet-600 hover:text-violet-700"
+              >
                 {data.switchLabel}
               </Link>
             </p>
