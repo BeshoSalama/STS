@@ -10,14 +10,26 @@ import { loginSchema } from "@/lib/validations/auth";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
 
-  // Auth.js secret
   secret:
     process.env.AUTH_SECRET ??
     process.env.NEXTAUTH_SECRET ??
     "sts-local-dev-secret-change-me",
 
-  // مهم لأن الموقع Production خلف Nginx / Reverse Proxy
   trustHost: true,
+
+  // Custom PKCE cookie to avoid conflicts with old/stale Auth.js cookies
+  cookies: {
+    pkceCodeVerifier: {
+      name: "__Secure-sts-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: true,
+        maxAge: 60 * 15,
+      },
+    },
+  },
 
   session: {
     strategy: "jwt",
@@ -28,9 +40,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   providers: [
-    // =========================
-    // Google Login
-    // =========================
     Google({
       clientId:
         process.env.AUTH_GOOGLE_ID ??
@@ -40,10 +49,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         process.env.AUTH_GOOGLE_SECRET ??
         process.env.GOOGLE_CLIENT_SECRET,
 
-      // يسمح بربط Google بحساب موجود بنفس الإيميل
       allowDangerousEmailAccountLinking: true,
 
-      // يجبر Google على إظهار اختيار الحساب كل مرة
       authorization: {
         params: {
           prompt: "select_account",
@@ -51,9 +58,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
 
-    // =========================
-    // Email + Password Login
-    // =========================
     Credentials({
       credentials: {
         email: {
@@ -103,17 +107,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
 
   callbacks: {
-    // =========================
-    // JWT
-    // =========================
     async jwt({ token, user }) {
       if (user) {
-        /*
-         * Credentials login بيكون role موجود بالفعل.
-         *
-         * في Google Login ممكن الـ role ما يكونش موجود
-         * مباشرة على user object، لذلك نرجع للداتابيز.
-         */
         const suppliedRole = (user as { role?: string }).role;
 
         if (suppliedRole) {
@@ -131,10 +126,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = existingUser?.role ?? "CLIENT";
         }
       } else if (!token.role && token.email) {
-        /*
-         * في الـ requests التالية نضمن وجود role
-         * حتى لو لم تكن موجودة داخل JWT.
-         */
         const existingUser = await db.user.findUnique({
           where: {
             email: token.email,
@@ -150,9 +141,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
 
-    // =========================
-    // Session
-    // =========================
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
