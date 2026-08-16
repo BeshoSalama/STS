@@ -4,8 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { ArrowRight, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, UserRound, XCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { passwordRules } from "@/lib/validations/auth";
 
 type AuthMode = "login" | "register";
 
@@ -42,6 +43,7 @@ function Field({
   placeholder,
   value,
   onChange,
+  showToggle,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -50,7 +52,11 @@ function Field({
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
+  showToggle?: boolean;
 }) {
+  const [visible, setVisible] = useState(false);
+  const inputType = showToggle ? (visible ? "text" : "password") : type;
+
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-violet-700">
@@ -62,14 +68,64 @@ function Field({
 
         <input
           name={name}
-          type={type}
+          type={inputType}
           placeholder={placeholder}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className="min-w-0 flex-1 bg-transparent text-sm font-medium text-ink outline-none placeholder:text-muted/65"
         />
+
+        {showToggle && (
+          <button
+            type="button"
+            aria-label={visible ? `Hide ${label}` : `Show ${label}`}
+            title={visible ? `Hide ${label}` : `Show ${label}`}
+            onClick={() => setVisible((current) => !current)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-violet-600 transition hover:bg-violet-100"
+          >
+            {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
       </span>
     </label>
+  );
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error && typeof error === "object" && "fieldErrors" in error) {
+    const fieldErrors = (error as { fieldErrors?: Record<string, string[]> }).fieldErrors;
+    const firstError = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+
+    if (firstError) {
+      return firstError;
+    }
+  }
+
+  return fallback;
+}
+
+function PasswordRuleList({ password }: { password: string }) {
+  return (
+    <div className="grid gap-2 rounded-2xl border border-violet-300/30 bg-white/10 px-4 py-3 sm:grid-cols-2">
+      {passwordRules.map((rule) => {
+        const passed = rule.test(password);
+
+        return (
+          <div key={rule.label} className="flex items-center gap-2 text-xs font-bold">
+            {passed ? (
+              <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />
+            ) : (
+              <XCircle size={15} className="shrink-0 text-muted/45" />
+            )}
+            <span className={passed ? "text-emerald-700" : "text-muted"}>{rule.label}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -192,9 +248,7 @@ export function AuthPanel({ mode }: AuthPanelProps) {
             }
 
             throw new Error(
-              typeof result?.error === "string"
-                ? result.error
-                : "Could not create account"
+              getErrorMessage(result?.error, "Could not create account")
             );
           }
 
@@ -418,9 +472,12 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                     placeholder="Password"
                     value={form.password}
                     onChange={(value) => updateField("password", value)}
+                    showToggle
                   />
                 </>
               )}
+
+              {isRegister && !awaitingVerification && <PasswordRuleList password={form.password} />}
 
               {isRegister && !awaitingVerification && (
                 <Field
@@ -433,6 +490,7 @@ export function AuthPanel({ mode }: AuthPanelProps) {
                   onChange={(value) =>
                     updateField("confirmPassword", value)
                   }
+                  showToggle
                 />
               )}
 

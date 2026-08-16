@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import { CalendarDays, ClipboardList, CreditCard, Mail, Phone, ShieldAlert, ShieldCheck, UserRound } from "lucide-react";
+import { ChangePasswordForm, type ChangePasswordState } from "@/components/auth/ChangePasswordForm";
 import { DeleteAccountButton } from "@/components/auth/DeleteAccountButton";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isStaff } from "@/lib/roles";
 import { requireSession } from "@/lib/rbac";
+import { changePasswordSchema } from "@/lib/validations/auth";
 
 async function updateProfile(formData: FormData) {
   "use server";
@@ -24,6 +27,64 @@ async function updateProfile(formData: FormData) {
 
   revalidatePath("/profile");
   revalidatePath("/portal");
+}
+
+async function changePassword(_: ChangePasswordState, formData: FormData): Promise<ChangePasswordState> {
+  "use server";
+  const session = await requireSession();
+  if (!session) redirect("/login");
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: String(formData.get("currentPassword") ?? ""),
+    newPassword: String(formData.get("newPassword") ?? ""),
+    confirmPassword: String(formData.get("confirmPassword") ?? ""),
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Please fix the password requirements below.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { passwordHash: true },
+  });
+
+  if (!user?.passwordHash) {
+    return {
+      status: "error",
+      message: "Password login is not enabled for this account.",
+    };
+  }
+
+  const passwordMatches = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+
+  if (!passwordMatches) {
+    return {
+      status: "error",
+      message: "Old password is incorrect.",
+      fieldErrors: {
+        currentPassword: ["Old password is incorrect"],
+      },
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { passwordHash },
+  });
+
+  revalidatePath("/profile");
+
+  return {
+    status: "success",
+    message: "Password changed successfully.",
+  };
 }
 
 async function deleteAccount(formData: FormData) {
@@ -264,6 +325,8 @@ export default async function ProfilePage() {
                 Save Changes
               </button>
             </form>
+
+            <ChangePasswordForm action={changePassword} />
 
             <section className="rounded-lg border border-red-300/20 bg-red-500/[0.06] p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
