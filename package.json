@@ -16,6 +16,7 @@
     "lint": "cd frontend && next lint",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
+    "db:seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
