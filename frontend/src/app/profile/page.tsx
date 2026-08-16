@@ -6,6 +6,7 @@ import { DeleteAccountButton } from "@/components/auth/DeleteAccountButton";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isStaff } from "@/lib/roles";
 import { requireSession } from "@/lib/rbac";
 
 async function updateProfile(formData: FormData) {
@@ -80,19 +81,34 @@ function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: stri
   );
 }
 
+function roleBadgeClass(role: string) {
+  if (role === "DEVELOPER") return "border-fuchsia-300/45 bg-fuchsia-400/18 text-fuchsia-50 shadow-[0_0_22px_rgba(217,70,239,0.18)]";
+  if (role === "ADMIN") return "border-violet-300/45 bg-violet-400/18 text-violet-50 shadow-[0_0_22px_rgba(139,92,246,0.18)]";
+  if (role === "STAFF") return "border-sky-300/45 bg-sky-400/18 text-sky-50 shadow-[0_0_22px_rgba(56,189,248,0.16)]";
+  return "border-emerald-300/45 bg-emerald-400/18 text-emerald-50 shadow-[0_0_22px_rgba(52,211,153,0.14)]";
+}
+
 export default async function ProfilePage() {
   const session = await requireSession();
   if (!session) redirect("/login");
 
-  const [user, leadCount, briefCount, bookingCount, quoteCount, paymentCount, payments, subscription] = await Promise.all([
-    db.user.findUnique({ where: { id: session.user.id } }),
-    db.lead.count({ where: { userId: session.user.id } }),
-    db.brief.count({ where: { userId: session.user.id } }),
-    db.booking.count({ where: { userId: session.user.id } }),
-    db.packageQuote.count({ where: { lead: { userId: session.user.id } } }),
-    db.paymentTransaction.count({ where: { userId: session.user.id } }),
+  const user = await db.user.findUnique({ where: { id: session.user.id } });
+
+  if (!user) redirect("/login");
+
+  const backOfficeAccount = isStaff(user.role);
+  const userScope = backOfficeAccount ? undefined : { userId: session.user.id };
+  const leadScope = backOfficeAccount ? undefined : { userId: session.user.id };
+  const quoteScope = backOfficeAccount ? undefined : { lead: { userId: session.user.id } };
+
+  const [leadCount, briefCount, bookingCount, quoteCount, paymentCount, payments, subscription] = await Promise.all([
+    db.lead.count({ where: leadScope }),
+    db.brief.count({ where: userScope }),
+    db.booking.count({ where: userScope }),
+    db.packageQuote.count({ where: quoteScope }),
+    db.paymentTransaction.count({ where: userScope }),
     db.paymentTransaction.findMany({
-      where: { userId: session.user.id },
+      where: userScope,
       orderBy: { createdAt: "desc" },
       take: 10,
       select: {
@@ -110,9 +126,7 @@ export default async function ProfilePage() {
     db.userSubscription.findUnique({ where: { userId: session.user.id } }),
   ]);
 
-  if (!user) redirect("/login");
-
-  const adminHref = user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : null;
+  const adminHref = isStaff(user.role) ? "/admin" : null;
   const initials = (user.name ?? user.email)
     .split(" ")
     .map((part) => part[0])
@@ -130,8 +144,8 @@ export default async function ProfilePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {adminHref && (
-              <Link href={adminHref} className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
-                Admin
+              <Link href={adminHref} className="rounded-full border border-violet-300/45 bg-violet-gradient px-5 py-2 text-sm font-black text-white shadow-[0_0_26px_rgba(139,92,246,0.28)] transition hover:border-violet-200/70 hover:brightness-110">
+                Dashboard
               </Link>
             )}
             <LogoutButton />
@@ -147,7 +161,7 @@ export default async function ProfilePage() {
               <div className="min-w-0">
                 <h2 className="truncate font-display text-2xl font-bold">{user.name ?? "STS User"}</h2>
                 <p className="mt-1 truncate text-sm text-white/58">{user.email}</p>
-                <span className="mt-3 inline-flex rounded-full border border-violet-300/25 bg-violet-500/10 px-3 py-1 text-xs font-bold text-violet-100">
+                <span className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-black ${roleBadgeClass(user.role)}`}>
                   {user.role}
                 </span>
               </div>

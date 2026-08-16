@@ -1,16 +1,20 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAdminSession } from "@/lib/rbac";
+import { isDeveloper, roles } from "@/lib/roles";
+import { requireAdminSession, requireDeveloperSession } from "@/lib/rbac";
 
 const inputClass = "min-h-10 rounded-lg border border-white/10 bg-black/20 px-3 text-sm text-white outline-none";
+const manageableRoles = [roles.client, roles.staff, roles.admin, roles.developer];
 
 async function updateUserRole(formData: FormData) {
   "use server";
-  if (!(await requireAdminSession())) throw new Error("Admin access required");
+  if (!(await requireDeveloperSession())) throw new Error("Developer access required");
+  const role = String(formData.get("role") ?? roles.client);
+  if (!manageableRoles.includes(role as (typeof manageableRoles)[number])) throw new Error("Invalid role");
   await db.user.update({
     where: { id: String(formData.get("id") ?? "") },
-    data: { role: String(formData.get("role") ?? "CLIENT") },
+    data: { role },
   });
   revalidatePath("/admin/clients");
 }
@@ -32,7 +36,9 @@ async function deleteUser(formData: FormData) {
 }
 
 export default async function AdminClientsPage() {
-  if (!(await requireAdminSession())) redirect("/admin/briefs");
+  const session = await requireAdminSession();
+  if (!session) redirect("/admin/briefs");
+  const canManageRoles = isDeveloper(session.user.role);
   const users = await db.user.findMany({
     orderBy: { createdAt: "desc" },
     include: {
@@ -44,7 +50,7 @@ export default async function AdminClientsPage() {
     <section className="grid gap-5">
       <div>
         <h2 className="font-display text-3xl font-extrabold">Client & Account Management</h2>
-        <p className="mt-2 text-sm text-white/55">Admin can promote users, manage roles, and remove accounts.</p>
+        <p className="mt-2 text-sm text-white/55">Developer accounts can promote users, manage roles, and remove accounts.</p>
       </div>
 
       {users.map((user) => (
@@ -61,13 +67,15 @@ export default async function AdminClientsPage() {
             <span className="rounded bg-black/20 p-2">{user._count.bookings} Bookings</span>
             <span className="rounded bg-black/20 p-2">{user._count.campaigns} Campaigns</span>
           </div>
-          <select name="role" defaultValue={user.role} className={inputClass}>
-            <option value="CLIENT">CLIENT</option>
-            <option value="STAFF">STAFF</option>
-            <option value="ADMIN">ADMIN</option>
+          <select name="role" defaultValue={user.role} disabled={!canManageRoles} className={inputClass}>
+            {manageableRoles.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
           </select>
           <div className="flex gap-2">
-            <button className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold">Save Role</button>
+            <button disabled={!canManageRoles} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45">Save Role</button>
             <button formAction={deleteUser} className="rounded-lg border border-red-300/30 px-4 py-2 text-sm font-bold text-red-100">
               Delete
             </button>

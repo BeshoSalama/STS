@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { defaultAboutContent, defaultAvatar, defaultFounderPhoto, serializeAboutContent } from "../frontend/src/lib/content/about";
 import { clientLogoImages } from "../frontend/src/lib/content/clientLogos";
 import { valueProps } from "../frontend/src/lib/content/clients";
 import { industries } from "../frontend/src/lib/content/industries";
@@ -10,6 +11,28 @@ import { clientStats, heroStats, platforms, resultCards } from "../frontend/src/
 import { team } from "../frontend/src/lib/content/team";
 
 const db = new PrismaClient();
+
+const seededUsers = [
+  { name: "STS Developer", email: "developer@sts.local", password: "Developer123456!", role: "DEVELOPER" },
+  { name: "STS Admin", email: "admin@sts.local", password: "Admin123456!", role: "ADMIN" },
+  { name: "STS Staff", email: "staff@sts.local", password: "Staff123456!", role: "STAFF" },
+  { name: "STS Client", email: "client@sts.local", password: "Client123456!", role: "CLIENT" },
+];
+
+const retiredSeedEmails = [
+  "developer1@sts.local",
+  "developer2@sts.local",
+  "developer3@sts.local",
+  "admin1@sts.local",
+  "admin2@sts.local",
+  "admin3@sts.local",
+  "staff1@sts.local",
+  "staff2@sts.local",
+  "staff3@sts.local",
+  "client1@sts.local",
+  "client2@sts.local",
+  "client3@sts.local",
+];
 
 async function main() {
   for (const [order, project] of projects.entries()) {
@@ -51,10 +74,16 @@ async function main() {
   for (const [order, member] of team.entries()) {
     await db.teamMember.upsert({
       where: { id: `team-${order}` },
-      update: { ...member, order },
-      create: { id: `team-${order}`, ...member, order },
+      update: { ...member, photo: member.photo || defaultAvatar, order },
+      create: { id: `team-${order}`, ...member, photo: member.photo || defaultAvatar, order },
     });
   }
+
+  await db.aboutPageContent.upsert({
+    where: { id: 1 },
+    update: serializeAboutContent({ ...defaultAboutContent, founderPhoto: defaultFounderPhoto }),
+    create: { id: 1, ...serializeAboutContent({ ...defaultAboutContent, founderPhoto: defaultFounderPhoto }) },
+  });
 
   for (const [order, plan] of packagePlans.entries()) {
     await db.packagePlan.upsert({
@@ -193,31 +222,22 @@ async function main() {
     },
   });
 
-  const adminPassword = await bcrypt.hash("Admin123456!", 12);
-  await db.user.upsert({
-    where: { email: "admin@sts.local" },
-    update: { passwordHash: adminPassword, role: "ADMIN", emailVerified: new Date() },
-    create: {
-      name: "STS Admin",
-      email: "admin@sts.local",
-      passwordHash: adminPassword,
-      emailVerified: new Date(),
-      role: "ADMIN",
-    },
-  });
+  for (const user of seededUsers) {
+    const passwordHash = await bcrypt.hash(user.password, 12);
+    await db.user.upsert({
+      where: { email: user.email },
+      update: { name: user.name, passwordHash, role: user.role, emailVerified: new Date() },
+      create: {
+        name: user.name,
+        email: user.email,
+        passwordHash,
+        emailVerified: new Date(),
+        role: user.role,
+      },
+    });
+  }
 
-  const staffPassword = await bcrypt.hash("Staff123456!", 12);
-  await db.user.upsert({
-    where: { email: "staff@sts.local" },
-    update: { passwordHash: staffPassword, role: "STAFF", emailVerified: new Date() },
-    create: {
-      name: "STS Staff",
-      email: "staff@sts.local",
-      passwordHash: staffPassword,
-      emailVerified: new Date(),
-      role: "STAFF",
-    },
-  });
+  await db.user.deleteMany({ where: { email: { in: retiredSeedEmails } } });
 }
 
 main()

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Default team avatar">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="68%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="48%" stop-color="#421952"/>
+      <stop offset="100%" stop-color="#080216"/>
+    </radialGradient>
+    <linearGradient id="glow" x1="30" y1="24" x2="210" y2="224">
+      <stop stop-color="#f5d0fe" stop-opacity=".86"/>
+      <stop offset=".55" stop-color="#a78bfa" stop-opacity=".56"/>
+      <stop offset="1" stop-color="#581c87" stop-opacity=".35"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="120" fill="url(#bg)"/>
+  <circle cx="120" cy="92" r="43" fill="#f8f4ff" opacity=".9"/>
+  <path d="M44 214c9-48 38-76 76-76s67 28 76 76" fill="#f8f4ff" opacity=".9"/>
+  <circle cx="120" cy="120" r="86" fill="none" stroke="url(#glow)" stroke-width="3" opacity=".75"/>
+  <circle cx="120" cy="120" r="104" fill="none" stroke="#c69cff" stroke-width="1" opacity=".28"/>
+</svg>

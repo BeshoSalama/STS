@@ -213,6 +213,38 @@ model TeamMember {
   order Int     @default(0)
 }
 
+model AboutPageContent {
+  id               Int      @id @default(1)
+  heroEyebrow      String
+  heroTitle        String
+  heroHighlight    String
+  heroSubtitle     String   @db.NVarChar(Max)
+  heroStats        String   @db.NVarChar(Max)
+  serviceCards     String   @db.NVarChar(Max)
+  processEyebrow   String
+  processTitle     String
+  processSteps     String   @db.NVarChar(Max)
+  founderEyebrow   String
+  founderName      String
+  founderRole      String
+  founderPhoto     String?
+  founderBio       String   @db.NVarChar(Max)
+  founderBullets   String   @db.NVarChar(Max)
+  founderStats     String   @db.NVarChar(Max)
+  teamEyebrow      String
+  teamTitle        String
+  metricsTitle     String
+  metrics          String   @db.NVarChar(Max)
+  reasonsTitle     String
+  reasons          String   @db.NVarChar(Max)
+  termsTitle       String
+  termsText        String   @db.NVarChar(Max)
+  termsButtonLabel String
+  termsItems       String   @db.NVarChar(Max)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 model ServiceItem {
   id          String @id @default(cuid())
   icon        String

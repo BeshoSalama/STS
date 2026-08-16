@@ -43,6 +43,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </Link>
             )}
             {admin && (
+              <Link href="/admin/about" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
+                About
+              </Link>
+            )}
+            {admin && (
               <Link href="/admin/packages" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold">
                 Packages
               </Link>

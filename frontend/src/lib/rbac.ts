@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { isAdmin, isClient, isStaff } from "@/lib/roles";
+import { isAdmin, isClient, isDeveloper, isStaff } from "@/lib/roles";
 
 export async function requireSession() {
   const session = await auth();
@@ -14,6 +14,11 @@ export async function requireStaffSession() {
 export async function requireAdminSession() {
   const session = await auth();
   return isAdmin(session?.user?.role) ? session : null;
+}
+
+export async function requireDeveloperSession() {
+  const session = await auth();
+  return isDeveloper(session?.user?.role) ? session : null;
 }
 
 export async function requireClientSession() {

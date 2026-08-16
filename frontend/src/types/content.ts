@@ -5,8 +5,11 @@ export interface NavLink {
 }
 
 export interface TeamMember {
+  id?: string;
   name: string;
   role: string;
+  photo?: string | null;
+  order?: number;
 }
 
 export interface ClientLogo {

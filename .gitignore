@@ -4,6 +4,7 @@ node_modules
 *.tsbuildinfo
 .env
 .env*.local
+Resend_API.txt
 tmp
 npm-debug.log*
 prisma/*.db

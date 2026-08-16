@@ -16,10 +16,11 @@ function StatCard({ label, value, href }: { label: string; value: number | strin
 export default async function AdminOverviewPage() {
   if (!(await requireAdminSession())) redirect("/admin/briefs");
 
-  const [clients, staff, admins, leads, briefs, newBriefs, projects, packages, addOns, bookings, pendingPayments, approvedPayments, rejectedPayments, revenue] = await Promise.all([
+  const [clients, staff, admins, developers, leads, briefs, newBriefs, projects, packages, addOns, bookings, pendingPayments, approvedPayments, rejectedPayments, revenue] = await Promise.all([
     db.user.count({ where: { role: "CLIENT" } }),
     db.user.count({ where: { role: "STAFF" } }),
     db.user.count({ where: { role: "ADMIN" } }),
+    db.user.count({ where: { role: "DEVELOPER" } }),
     db.lead.count(),
     db.brief.count(),
     db.brief.count({ where: { lead: { status: "NEW" } } }),
@@ -77,7 +78,8 @@ export default async function AdminOverviewPage() {
             <Users size={20} className="text-violet-200" />
             Accounts
           </h3>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            <div className="rounded-lg bg-black/20 p-4"><p className="text-3xl font-bold">{developers}</p><p className="text-xs text-white/45">Developers</p></div>
             <div className="rounded-lg bg-black/20 p-4"><p className="text-3xl font-bold">{admins}</p><p className="text-xs text-white/45">Admins</p></div>
             <div className="rounded-lg bg-black/20 p-4"><p className="text-3xl font-bold">{staff}</p><p className="text-xs text-white/45">Brief Managers</p></div>
             <div className="rounded-lg bg-black/20 p-4"><p className="text-3xl font-bold">{clients}</p><p className="text-xs text-white/45">Clients</p></div>
