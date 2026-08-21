@@ -23,7 +23,7 @@ export default async function AboutPage() {
   const processTitle = splitHighlight(content.processTitle);
 
   return (
-    <main dir="rtl" className="relative overflow-hidden bg-[#02040b] pb-16 pt-24 text-white">
+    <main dir="ltr" className="relative overflow-hidden bg-[#02040b] pb-16 pt-24 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_23%,rgba(98,38,190,0.18),transparent_28%),radial-gradient(circle_at_72%_20%,rgba(82,28,142,0.12),transparent_24%),linear-gradient(180deg,#02040b_0%,#050612_40%,#02040b_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(107,70,193,0.026)_1px,transparent_1px),linear-gradient(90deg,rgba(107,70,193,0.026)_1px,transparent_1px)] bg-[size:56px_56px] opacity-55" />
 
@@ -44,7 +44,7 @@ export default async function AboutPage() {
             {content.heroStats.map((stat, index) => (
               <article
                 key={`${stat.value}-${stat.label}`}
-                className="absolute min-w-[128px] rounded-lg border border-violet-300/16 bg-[#0b0618]/78 px-4 py-3 text-right shadow-[0_18px_45px_rgba(0,0,0,0.35),0_0_18px_rgba(124,58,237,0.16)] backdrop-blur"
+                className="absolute min-w-[128px] rounded-lg border border-violet-300/16 bg-[#0b0618]/78 px-4 py-3 text-left shadow-[0_18px_45px_rgba(0,0,0,0.35),0_0_18px_rgba(124,58,237,0.16)] backdrop-blur"
                 style={{
                   left: index === 0 || index === 2 ? "3%" : "auto",
                   right: index === 1 || index === 3 ? "3%" : "auto",
@@ -57,7 +57,7 @@ export default async function AboutPage() {
             ))}
           </div>
 
-          <div dir="rtl" className="text-right">
+          <div className="text-left">
             <p className="text-sm font-black text-violet-400">• {content.heroEyebrow}</p>
             <h1 className="mt-4 max-w-3xl font-display text-4xl font-black leading-tight text-white sm:text-5xl">
               {content.heroTitle} <span className="bg-violet-gradient-text bg-clip-text text-transparent">{content.heroHighlight}</span>
@@ -122,7 +122,7 @@ export default async function AboutPage() {
             </ul>
             <div className="mt-7 grid grid-cols-2 gap-4 md:grid-cols-4">
               {content.founderStats.map((stat) => (
-                <article key={`${stat.value}-${stat.label}`} className="border-r border-white/10 pr-4 first:border-r-0 first:pr-0">
+                <article key={`${stat.value}-${stat.label}`} className="border-l border-white/10 pl-4 first:border-l-0 first:pl-0">
                   <strong className="block font-display text-3xl font-black text-violet-300">{stat.value}</strong>
                   <span className="mt-1 block text-xs text-muted">{stat.label}</span>
                 </article>
@@ -168,7 +168,7 @@ export default async function AboutPage() {
         </section>
 
         <section className="grid gap-6 rounded-lg border border-white/10 bg-white/[0.025] p-6 shadow-card lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div className="text-center lg:text-right">
+          <div className="text-center lg:text-left">
             <ShieldCheck className="mx-auto h-16 w-16 text-violet-300 lg:mx-0" />
             <h2 className="mt-4 font-display text-2xl font-black">{content.termsTitle}</h2>
             <p className="mt-3 text-sm leading-7 text-muted">{content.termsText}</p>
