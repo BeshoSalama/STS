@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     const dateKey = formatDateKey(cursor);
     const capacity = capacityByDate.get(dateKey);
     const bookingCount = bookingCountByDate.get(dateKey) ?? 0;
-    const maxCapacity = capacity?.capacity ?? 6;
+    const maxCapacity = 1;
     const blocked = Boolean(capacity?.blocked);
     days.push({
       date: dateKey,

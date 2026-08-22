@@ -203,6 +203,7 @@ export function FreeConsultationPanel() {
         throw new Error(result?.error ?? "Could not book this consultation");
       }
 
+      setFullyBookedDates((dates) => new Set(dates).add(selectedDate));
       setStatus("done");
     } catch (error) {
       setStatus("error");

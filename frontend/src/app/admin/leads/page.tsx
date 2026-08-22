@@ -12,12 +12,17 @@ async function updateLeadStatus(formData: FormData) {
   revalidatePath("/admin/briefs");
 }
 
-export default async function AdminLeadsPage() {
-  const leads = await db.lead.findMany({ include: { brief: true, quote: true }, orderBy: { createdAt: "desc" } });
+export default async function AdminLeadsPage({ searchParams }: { searchParams?: { q?: string } }) {
+  const highlightedLeadId = searchParams?.q;
+  const leads = await db.lead.findMany({
+    where: highlightedLeadId ? { id: highlightedLeadId } : undefined,
+    include: { brief: true, quote: true },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <section className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
-      <h2 className="font-display text-2xl font-bold">Leads Inbox</h2>
+      <h2 className="font-display text-2xl font-bold">{highlightedLeadId ? "Selected Lead" : "Leads Inbox"}</h2>
       <div className="mt-5 grid gap-4">
         {leads.map((lead) => (
           <article key={lead.id} className="rounded-lg border border-white/10 bg-black/20 p-4">

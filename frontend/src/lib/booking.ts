@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 
-export const DEFAULT_DAY_CAPACITY = 6;
+export const DEFAULT_DAY_CAPACITY = 1;
 
 export function parseDateKey(dateKey: string) {
   return new Date(`${dateKey}T00:00:00.000Z`);
@@ -32,7 +32,7 @@ export async function assertBookable(dateKey: string) {
   if (capacity?.blocked) return { ok: false as const, reason: "DAY_BLOCKED" };
 
   const bookingCount = await db.booking.count({ where: { date } });
-  const dayCapacity = capacity?.capacity ?? DEFAULT_DAY_CAPACITY;
+  const dayCapacity = Math.min(capacity?.capacity ?? DEFAULT_DAY_CAPACITY, DEFAULT_DAY_CAPACITY);
   if (bookingCount >= dayCapacity) return { ok: false as const, reason: "DAY_FULL" };
 
   return { ok: true as const, date };

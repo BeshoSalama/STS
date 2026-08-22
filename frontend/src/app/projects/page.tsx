@@ -22,7 +22,7 @@ export default async function ProjectsPage() {
             }
             subtitle="A selection of brands we've helped scale with data-driven marketing systems."
           />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <StatCard label="Growth" value={heroStats.growth} prefix="+" suffix="%" variant="line" />
             <StatCard label="Revenue" value={heroStats.revenue} prefix="+" suffix="K" variant="bars" />
             <StatCard label="ROI" value={heroStats.roi} decimals={1} suffix="X" variant="ring" />

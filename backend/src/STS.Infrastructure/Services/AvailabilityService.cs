@@ -7,7 +7,7 @@ namespace STS.Infrastructure.Services;
 
 public sealed class AvailabilityService(StsDbContext db) : IAvailabilityService
 {
-    private const int DefaultDayCapacity = 6;
+    private const int DefaultDayCapacity = 1;
     private static readonly HashSet<string> StaticFullyBookedDates = ["2026-08-04", "2026-08-06", "2026-08-10", "2026-08-18"];
 
     public async Task<ApiResult<AvailabilityResponse>> GetAsync(string? from, string? to, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ public sealed class AvailabilityService(StsDbContext db) : IAvailabilityService
             var key = FormatDateKey(cursor);
             capacityByDate.TryGetValue(key, out var capacity);
             var booked = bookingsByDate.GetValueOrDefault(key);
-            var maxCapacity = capacity?.Capacity ?? DefaultDayCapacity;
+            var maxCapacity = DefaultDayCapacity;
             var blocked = capacity?.Blocked ?? false;
 
             days.Add(new AvailabilityDayResponse(

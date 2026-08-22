@@ -181,6 +181,7 @@ export function ContactPanel() {
     setMessage("");
     try {
       await submitContactForm({ name, phone, consultationDate: selectedDate });
+      setFullyBookedDates((dates) => new Set(dates).add(selectedDate));
       setStatus("done");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not book this consultation");

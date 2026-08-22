@@ -135,6 +135,30 @@ export function ProjectMediaManager({
         </div>
       )}
 
+      {pendingDelete && projectId && (
+        <div className="rounded-[8px] border border-red-300/25 bg-red-500/[0.08] p-4 text-white shadow-[0_20px_54px_rgba(0,0,0,0.28)]">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-red-100/70">Confirm delete</p>
+              <h3 className="mt-1 font-display text-xl font-black">Delete this media?</h3>
+              <p className="mt-1 break-words text-sm leading-6 text-white/62">{mediaLabel(pendingDelete)} will be removed from this brand page.</p>
+            </div>
+            <form action={deleteAction} className="flex shrink-0 flex-wrap gap-2">
+              <input type="hidden" name="id" value={projectId} />
+              <input type="hidden" name="slug" value={projectSlug} />
+              <input type="hidden" name="mediaId" value={pendingDelete.id ?? ""} />
+              <input type="hidden" name="mediaSrc" value={pendingDelete.src} />
+              <button type="button" onClick={() => setPendingDelete(null)} className="rounded-[8px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/75">
+                Cancel
+              </button>
+              <button className="rounded-[8px] border border-red-300/35 bg-red-500/25 px-4 py-3 text-sm font-black text-red-50 transition hover:bg-red-500/35">
+                Delete
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {hasMedia
           ? media.map((item) => (
@@ -175,34 +199,6 @@ export function ProjectMediaManager({
             ))}
       </div>
 
-      {pendingDelete && projectId && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/72 p-4 backdrop-blur-sm">
-          <div className="w-[min(92vw,440px)] rounded-[8px] border border-red-300/25 bg-[#120519] p-5 text-white shadow-[0_28px_80px_rgba(0,0,0,0.55)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-red-100/70">Confirm delete</p>
-                <h3 className="mt-2 font-display text-2xl font-black">Delete this media?</h3>
-                <p className="mt-2 text-sm leading-6 text-white/62">{mediaLabel(pendingDelete)} will be removed from this brand page.</p>
-              </div>
-              <button type="button" onClick={() => setPendingDelete(null)} className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-white/70">
-                <X size={15} />
-              </button>
-            </div>
-            <form action={deleteAction} className="mt-5 flex gap-3">
-              <input type="hidden" name="id" value={projectId} />
-              <input type="hidden" name="slug" value={projectSlug} />
-              <input type="hidden" name="mediaId" value={pendingDelete.id ?? ""} />
-              <input type="hidden" name="mediaSrc" value={pendingDelete.src} />
-              <button type="button" onClick={() => setPendingDelete(null)} className="flex-1 rounded-[8px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/75">
-                Cancel
-              </button>
-              <button className="flex-1 rounded-[8px] border border-red-300/35 bg-red-500/20 px-4 py-3 text-sm font-black text-red-50">
-                Delete
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

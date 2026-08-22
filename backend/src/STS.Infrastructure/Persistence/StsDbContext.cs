@@ -12,6 +12,7 @@ public sealed class StsDbContext(DbContextOptions<StsDbContext> options) : DbCon
     public DbSet<Brief> Briefs => Set<Brief>();
     public DbSet<PackageQuote> PackageQuotes => Set<PackageQuote>();
     public DbSet<PackageAddOn> PackageAddOns => Set<PackageAddOn>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,14 @@ public sealed class StsDbContext(DbContextOptions<StsDbContext> options) : DbCon
         {
             entity.ToTable("PackageAddOn");
             entity.HasKey(x => x.Id);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notification");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.UserId, x.ReadAt });
+            entity.HasIndex(x => new { x.UserId, x.CreatedAt });
         });
     }
 }

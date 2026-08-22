@@ -1,16 +1,17 @@
+using System.Data;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using STS.Application.Common;
 using STS.Application.Leads;
 using STS.Domain.Entities;
+using STS.Domain.Security;
 using STS.Infrastructure.Persistence;
 
 namespace STS.Infrastructure.Services;
 
 public sealed class LeadService(StsDbContext db) : ILeadService
 {
-    private const int DefaultDayCapacity = 6;
     private const int CustomPackageBaseFee = 199;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -26,7 +27,7 @@ public sealed class LeadService(StsDbContext db) : ILeadService
         if (capacity?.Blocked == true) return ApiResult<object>.Fail("DAY_BLOCKED", 409);
 
         var bookingCount = await db.Bookings.CountAsync(x => x.Date == date, cancellationToken);
-        if (bookingCount >= (capacity?.Capacity ?? DefaultDayCapacity)) return ApiResult<object>.Fail("DAY_FULL", 409);
+        if (bookingCount >= 1) return ApiResult<object>.Fail("DAY_FULL", 409);
 
         var now = DateTime.UtcNow;
         var booking = new Booking
@@ -49,22 +50,46 @@ public sealed class LeadService(StsDbContext db) : ILeadService
                 {
                     consultationDate = request.ConsultationDate,
                     bookingId = booking.Id,
-                    request.Company,
-                    request.Activity,
-                    request.Source,
-                    request.Goal
+                    email = TrimOrNull(request.Email),
+                    company = TrimOrNull(request.Company),
+                    activity = TrimOrNull(request.Activity),
+                    source = TrimOrNull(request.Source),
+                    goal = TrimOrNull(request.Goal)
                 },
                 JsonOptions),
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        db.Bookings.Add(booking);
-        db.Leads.Add(lead);
-
         try
         {
+            await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+            var bookingsForDay = await db.Bookings.CountAsync(x => x.Date == date, cancellationToken);
+            var dayCapacity = await db.DayCapacities.FindAsync([date], cancellationToken);
+            if (dayCapacity?.Blocked == true) return ApiResult<object>.Fail("DAY_BLOCKED", 409);
+            if (bookingsForDay >= 1) return ApiResult<object>.Fail("DAY_FULL", 409);
+
+            db.Bookings.Add(booking);
+            db.Leads.Add(lead);
+
+            var recipients = await db.Users
+                .Where(x => x.Role == UserRoles.Admin || x.Role == UserRoles.Staff || x.Role == UserRoles.Developer)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            var notificationBody = BuildConsultationNotificationBody(request);
+            db.Notifications.AddRange(recipients.Select(userId => new Notification
+            {
+                Id = NewId(),
+                UserId = userId,
+                Type = "CONSULTATION",
+                Title = "New free consultation request",
+                Body = notificationBody,
+                Href = $"/admin/leads?q={lead.Id}",
+                CreatedAt = now
+            }));
+
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
@@ -206,4 +231,20 @@ public sealed class LeadService(StsDbContext db) : ILeadService
     private static string NewId() => $"dotnet_{Guid.NewGuid():N}";
     private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static DateTime? ParseOptionalDate(string? value) => AvailabilityService.TryParseDateKey(value, out var date) ? date : null;
+    private static string BuildConsultationNotificationBody(ContactLeadRequest request)
+    {
+        var parts = new[]
+        {
+            $"Name: {request.Name?.Trim()}",
+            TrimOrNull(request.Email) is { } email ? $"Email: {email}" : null,
+            $"Phone: {request.Phone?.Trim()}",
+            $"Date: {request.ConsultationDate}",
+            TrimOrNull(request.Company) is { } company ? $"Company: {company}" : null,
+            TrimOrNull(request.Activity) is { } activity ? $"Activity: {activity}" : null,
+            TrimOrNull(request.Source) is { } source ? $"Source: {source}" : null,
+            TrimOrNull(request.Goal) is { } goal ? $"Goal: {goal}" : null
+        };
+
+        return string.Join(" | ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+    }
 }

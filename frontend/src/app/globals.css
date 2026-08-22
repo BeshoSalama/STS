@@ -656,23 +656,23 @@ body {
 
 @media (max-width: 719px) {
   .hero-dashboard-stage {
-    left: 34%;
-    top: 53%;
-    width: 218px;
+    left: 30%;
+    top: 58%;
+    width: min(252px, 66vw);
     min-width: 0;
     border-radius: 7px;
   }
 
   .hero-dashboard-satellite--trend {
-    left: 55%;
-    top: 47%;
+    left: 58%;
+    top: 55%;
     width: 126px;
     height: 112px;
   }
 
   .hero-dashboard-satellite--stack {
-    left: 58%;
-    top: 66%;
+    left: 61%;
+    top: 73%;
     width: 116px;
     min-height: 76px;
     gap: 4px;
@@ -844,7 +844,78 @@ body {
 @media (max-width: 719px) {
   .hero-network-background__shade {
     background:
-      linear-gradient(180deg, rgba(7, 2, 17, 0.94) 0%, rgba(7, 2, 17, 0.68) 45%, rgba(7, 2, 17, 0.08) 70%, rgba(7, 2, 17, 0.48) 100%);
+      linear-gradient(180deg, rgba(7, 2, 17, 0.9) 0%, rgba(7, 2, 17, 0.58) 42%, rgba(7, 2, 17, 0.08) 68%, rgba(7, 2, 17, 0.42) 100%);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .home-page-dark__content {
+    padding-top: 3rem;
+  }
+
+  .result-showcase-card,
+  .package-card {
+    pointer-events: auto;
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+    translate: 0 0;
+    transition-delay: 0ms;
+  }
+
+  .result-card-swap-stage {
+    overflow: visible;
+  }
+
+  .result-showcase-card {
+    min-height: 0;
+    border-radius: 1rem;
+    padding: 0.75rem;
+  }
+
+  .result-showcase-card::before {
+    border-radius: 1rem;
+  }
+
+  .result-card-media {
+    min-height: 150px;
+    border-radius: 0.75rem;
+  }
+
+  .result-card-arrow {
+    right: 0.75rem;
+    top: 0.75rem;
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+
+  .result-card-stat {
+    font-size: clamp(2rem, 11vw, 2.45rem);
+  }
+
+  .package-card {
+    min-height: 0;
+    padding: 1.25rem;
+  }
+
+  .energy-cta {
+    display: flex;
+    width: min(100%, 18rem);
+  }
+
+  .energy-cta__aura {
+    width: min(86vw, 320px);
+    height: 116px;
+  }
+
+  .energy-cta > [data-magnetic],
+  .energy-cta > [data-magnetic] > .energy-cta__button {
+    width: 100%;
   }
 }
 
@@ -4158,6 +4229,35 @@ main:has(.home-page-dark) + .site-footer {
 ::selection {
   background-color: #6d3fc4;
   color: #fff;
+}
+
+@media (max-width: 480px) {
+  .energy-cta__aura {
+    width: min(82vw, 320px);
+    height: 116px;
+  }
+
+  .result-showcase-card,
+  .package-card {
+    pointer-events: auto;
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+    translate: 0 0;
+    transition-delay: 0ms;
+  }
+
+  .result-card-swap-stage {
+    overflow: visible;
+  }
+
+  .footer-neural-scene {
+    overflow: hidden;
+  }
+
+  .footer-neural-runner--five {
+    display: none;
+  }
 }
 
 @keyframes page-in {

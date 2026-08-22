@@ -8,14 +8,14 @@ export function Hero() {
   const headlineRef = useTextReveal(0.15);
 
   return (
-    <section className="hero-dark relative flex min-h-[100svh] overflow-hidden pb-20 pt-36 text-white sm:pt-40 lg:items-center lg:pb-24 lg:pt-44">
+    <section className="hero-dark relative flex min-h-[720px] overflow-hidden pb-14 pt-28 text-white sm:min-h-[100svh] sm:pb-20 sm:pt-40 lg:items-center lg:pb-24 lg:pt-44">
       <HeroBackground />
-      <div className="container relative z-10 grid w-full gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-8">
+      <div className="container relative z-10 grid w-full gap-8 sm:gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-8">
         <div className="max-w-xl">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-violet-300">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-violet-300 sm:text-sm sm:tracking-[0.25em]">
             Marketing Growth Agency
           </p>
-          <h1 ref={headlineRef as React.RefObject<HTMLHeadingElement>} className="font-display text-6xl font-extrabold leading-[0.95] tracking-tight text-white sm:text-7xl lg:text-[5.5rem]">
+          <h1 ref={headlineRef as React.RefObject<HTMLHeadingElement>} className="font-display text-[clamp(3rem,15.5vw,3.75rem)] font-extrabold leading-[0.95] tracking-normal text-white sm:text-7xl lg:text-[5.5rem]">
             <span className="block overflow-hidden">
               <span data-word className="inline-block">
                 GROWING
@@ -33,12 +33,12 @@ export function Hero() {
           <p className="mt-6 max-w-md text-base leading-relaxed text-white/82 sm:text-lg">
             We build scalable marketing systems powered by data, creativity, and performance.
           </p>
-          <div className="mt-10">
+          <div className="mt-9 sm:mt-10">
             <EnergyCTA />
           </div>
         </div>
 
-        <div className="relative mx-auto h-[360px] w-full max-w-2xl sm:h-[420px] lg:h-[500px]">
+        <div className="relative mx-auto h-[250px] w-full max-w-2xl sm:h-[420px] lg:h-[500px]">
           <p className="hero-visual-tagline absolute right-0 top-2 hidden text-right font-display text-[10px] font-semibold uppercase tracking-[0.32em] text-white/62 sm:block">
             Idea <span className="mx-2 text-violet-300/80">/</span> Strategy <span className="mx-2 text-violet-300/80">/</span> Growth
           </p>
